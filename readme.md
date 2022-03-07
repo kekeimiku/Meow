@@ -1,4 +1,4 @@
-### TODO：linux版 cheat engine （支持图形界面和命令行操作） 龟速开发中
+### TODO：linux （包括android）版 cheat engine （支持图形界面和命令行操作） 龟速开发中
 
 
 
