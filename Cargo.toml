@@ -1,0 +1,27 @@
+[package]
+name = "lince"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# [lib]
+# name = "lince"
+# crate-type = ["cdylib"]
+
+[dependencies]
+memchr = {version = "2"}
+# rustyline = "9.1.0"
+# colored = "2"
+
+# [profile.release]
+# lto = true
+# codegen-units = 1
+# panic = "abort"
+# strip = true
+
+# [profile.dev]
+# lto = true
+# codegen-units = 1
+# panic = "abort"
+# strip = true
