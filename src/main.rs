@@ -1,5 +1,3 @@
-#![feature(test)]
-
 use std::env;
 
 use crate::def::Cheat;
@@ -8,8 +6,6 @@ pub mod comm;
 pub mod def;
 pub mod maps;
 pub mod mem;
-
-
 
 fn main() {
     //line();
@@ -21,12 +17,7 @@ fn main() {
     let app = Cheat::new(pid);
 
     let m = app.readmaps_c_heap();
-    println!(
-        "{}-{} {}",
-        m.start(),
-        m.end(),
-        m.pathname()
-    );
+    println!("{}-{} {}", m.start(), m.end(), m.pathname());
 
     let a = app.readmaps_c_heap();
 
@@ -38,22 +29,6 @@ fn main() {
         .collect::<Vec<usize>>();
 
     println!("{:?}", target);
-}
-
-#[cfg(test)]
-mod tests {
-    extern crate test;
-    use super::*;
-    use test::Bencher;
-
-    #[bench]
-    fn bench_main(b: &mut Bencher) {
-        b.iter(|| {
-            for _ in 0..1000 {
-                main()
-            }
-        });
-    }
 }
 
 // enum Type {

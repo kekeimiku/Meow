@@ -9,8 +9,22 @@ edition = "2021"
 # name = "lince"
 # crate-type = ["cdylib"]
 
+[[bin]]
+bench = false
+path = "src/main.rs"
+name = "lince"
+
+[[bench]]
+name = "integration_bench"
+path = "bench/benchs.rs"
+
+[[test]]
+name = "integration_test"
+path = "tests/tests.rs"
+
 [dependencies]
-memchr = {version = "2"}
+memchr = { version = "2" }
+# walkdir = "2"
 # rustyline = "9.1.0"
 # colored = "2"
 
@@ -20,8 +34,4 @@ memchr = {version = "2"}
 # panic = "abort"
 # strip = true
 
-# [profile.dev]
-# lto = true
-# codegen-units = 1
-# panic = "abort"
-# strip = true
+[profile.dev]

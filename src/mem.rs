@@ -28,6 +28,12 @@ impl Cheat {
     pub fn search_index(buf: &[u8], target: &[u8]) -> Vec<usize> {
         memchr::memmem::find_iter(buf, target).collect::<Vec<usize>>()
     }
+
+    pub fn search_u8(buf: &[u8], target: &[u8]) -> Vec<usize> {
+        memchr::memmem::find_iter(buf, target).collect::<Vec<usize>>()
+    }
+
+
 }
 
 
