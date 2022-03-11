@@ -1,6 +1,9 @@
-use std::{fs::File, io::Read};
+use std::{
+    fs::File,
+    io::{Read, Result},
+};
 
-use crate::def::Cheat;
+use crate::def::PID;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MapRange {
@@ -37,8 +40,8 @@ impl MapRange {
     }
 }
 
-pub fn get_process_maps(pid: i32) -> std::io::Result<Vec<MapRange>> {
-    let maps_file = format!("/proc/{}/maps", pid);
+pub fn get_process_maps() -> Result<Vec<MapRange>> {
+    let maps_file = format!("/proc/{}/maps", unsafe { PID });
     let mut file = File::open(maps_file)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
@@ -74,105 +77,102 @@ pub fn parse_proc_maps(contents: &str) -> Vec<MapRange> {
     vec
 }
 
-impl Cheat {
-    pub fn readmaps_c_alloc(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "[anon:libc_malloc]" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_c_alloc() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "[anon:libc_malloc]" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_c_bss(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "[anon:.bss]" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_c_bss() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "[anon:.bss]" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_c_data(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "/data/app/" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_c_data() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "/data/app/" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_java_heap(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "/dev/ashmem/" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_java_heap() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "/dev/ashmem/" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_a_anonmyous(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname().len() < 1 && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_a_anonmyous() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname().len() < 1 && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_code_system(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "/system" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_code_system() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "/system" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_ashmem(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "/dev/ashmem/" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_ashmem() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "/dev/ashmem/" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_code_app(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "/data/app/" && m.is_read() && !m.is_write() && m.is_exec())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_code_app() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "/data/app/" && m.is_read() && !m.is_write() && m.is_exec())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_stack(&self) -> MapRange {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "[stack]" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()[0]
-            .clone()
-    }
+pub fn readmaps_stack() -> MapRange {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "[stack]" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()[0]
+        .clone()
+}
 
-    pub fn readmaps_c_heap(&self) -> MapRange {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "[heap]" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()[0]
-            .clone()
-    }
+pub fn readmaps_c_heap() -> MapRange {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "[heap]" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()[0]
+        .clone()
+}
 
-    pub fn readmaps_other(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.pathname() == "[anon:thread signal stack]" && m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
+pub fn readmaps_other() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.pathname() == "[anon:thread signal stack]" && m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
 
-    pub fn readmaps_all(&self) -> Vec<MapRange> {
-        get_process_maps(self.pid)
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.is_read() && m.is_write())
-            .collect::<Vec<MapRange>>()
-    }
-
+pub fn readmaps_all() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
 }
 
 pub fn find_index(buf: &[u8], target: &[u8]) -> Vec<usize> {
@@ -180,4 +180,3 @@ pub fn find_index(buf: &[u8], target: &[u8]) -> Vec<usize> {
         .filter(|&i| buf[i..i + target.len()] == target[..])
         .collect()
 }
-

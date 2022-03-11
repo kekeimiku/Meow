@@ -1,63 +1,59 @@
 use std::{
-    default,
     fs::{File, OpenOptions},
     io::{self, Read, Seek, SeekFrom, Write},
     path::Path,
-    thread,
-    time::Duration,
 };
 
-use crate::{def::Cheat, maps::MapRange};
+use crate::{def::PID, maps::{readmaps_all, readmaps_c_alloc}};
 
-impl Cheat {
-    pub fn read_bytes(&self, address: usize, size: usize) -> Result<Vec<u8>, io::Error> {
-        let mut file = File::open(&Path::new(&format!("/proc/{}/mem", self.pid)))?;
-        file.seek(SeekFrom::Start(address as u64))?;
-        let mut buffer = vec![0; size];
-        file.read(&mut buffer)?;
-        Ok(buffer)
-    }
-
-    pub fn write_bytes(&self, address: usize, payload: &[u8]) -> Result<usize, io::Error> {
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&Path::new(&format!("/proc/{}/mem", self.pid)))?;
-        file.seek(SeekFrom::Start(address as u64))?;
-        file.write_all(payload)?;
-        Ok(payload.len())
-    }
-
-    pub fn freeze(&self, address: usize, payload: &[u8], flag: bool) {
-        unsafe {
-            std::thread::Builder::new()
-                .spawn_unchecked(move || {
-                    let mut file = OpenOptions::new()
-                        .read(true)
-                        .write(true)
-                        .open(&Path::new(&format!("/proc/{}/mem", self.pid)))
-                        .unwrap();
-                    file.seek(SeekFrom::Start(address as u64)).unwrap();
-                    loop {
-                        file.write(payload).unwrap();
-                        if !flag {
-                            break;
-                        }
-                        thread::sleep(Duration::from_millis(1))
-                    }
-                })
-                .unwrap()
-                .join()
-                .unwrap();
-        }
-    }
+pub fn read_bytes(address: usize, size: usize) -> Result<Vec<u8>, io::Error> {
+    let mut file = File::open(&Path::new(&format!("/proc/{}/mem", unsafe { PID })))?;
+    file.seek(SeekFrom::Start(address as u64))?;
+    let mut buffer = vec![0; size];
+    file.read(&mut buffer)?;
+    Ok(buffer)
 }
 
+pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, io::Error> {
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&Path::new(&format!("/proc/{}/mem", unsafe { PID })))?;
+    file.seek(SeekFrom::Start(address as u64))?;
+    file.write_all(payload)?;
+    Ok(payload.len())
+}
 
 pub fn search_index(buf: &[u8], target: &[u8]) -> Vec<usize> {
     memchr::memmem::find_iter(buf, target).collect::<Vec<usize>>()
 }
 
-pub fn search_u8(buf: &[u8], target: &[u8]) -> Vec<usize> {
-    memchr::memmem::find_iter(buf, target).collect::<Vec<usize>>()
+pub fn search_all_mem(target: &[u8]) -> Vec<usize> {
+    let mut s: Vec<usize> = Default::default();
+    readmaps_all().iter().for_each(|f| {
+        let buf = read_bytes(f.start(), f.end() - f.start());
+        let target = search_index(&buf.unwrap(), target)
+            .iter()
+            .map(|m| m + f.start())
+            .collect::<Vec<usize>>();
+        if !target.is_empty() {
+            target.iter().for_each(|f| s.push(*f))
+        }
+    });
+    s
+}
+
+pub fn search_c_alloc(target: &[u8]) -> Vec<usize> {
+    let mut s: Vec<usize> = Default::default();
+    readmaps_c_alloc().iter().for_each(|f| {
+        let buf = read_bytes(f.start(), f.end() - f.start());
+        let target = search_index(&buf.unwrap(), target)
+            .iter()
+            .map(|m| m + f.start())
+            .collect::<Vec<usize>>();
+        if !target.is_empty() {
+            target.iter().for_each(|f| s.push(*f))
+        }
+    });
+    s
 }

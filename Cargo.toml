@@ -24,7 +24,6 @@ path = "tests/tests.rs"
 
 [dependencies]
 memchr = { version = "2" }
-dashmap = "5.1.0"
 # walkdir = "2"
 # rustyline = "9.1.0"
 # colored = "2"
