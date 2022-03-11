@@ -99,8 +99,6 @@ impl Cheat {
             .collect::<Vec<MapRange>>()
     }
 
-
-
     pub fn readmaps_java_heap(&self) -> Vec<MapRange> {
         get_process_maps(self.pid)
             .unwrap()
@@ -164,6 +162,14 @@ impl Cheat {
             .unwrap()
             .into_iter()
             .filter(|m| m.pathname() == "[anon:thread signal stack]" && m.is_read() && m.is_write())
+            .collect::<Vec<MapRange>>()
+    }
+
+    pub fn readmaps_all(&self) -> Vec<MapRange> {
+        get_process_maps(self.pid)
+            .unwrap()
+            .into_iter()
+            .filter(|m| m.is_read() && m.is_write())
             .collect::<Vec<MapRange>>()
     }
 
