@@ -1,3 +1,4 @@
+#![feature(thread_spawn_unchecked)]
 use std::env;
 
 use crate::def::Cheat;
