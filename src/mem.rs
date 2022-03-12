@@ -1,13 +1,13 @@
 use std::{
     fs::{File, OpenOptions},
     io::{self, Read, Seek, SeekFrom, Write},
-    os::unix::prelude::OsStrExt,
     path::Path,
 };
 
 use crate::{
     comm::PID,
     maps::{readmaps_all_r, readmaps_all_rw, readmaps_c_alloc},
+    sdiff::sorted_difference,
 };
 
 pub fn read_bytes(address: usize, size: usize) -> Result<Vec<u8>, io::Error> {
@@ -87,4 +87,14 @@ pub fn search_c_alloc(target: &[u8]) -> Vec<usize> {
         }
     });
     s
+}
+
+pub fn x1(i1: Vec<usize>, i2: Vec<usize>) -> Vec<usize> {
+    let mut it1 = i1;
+    let mut it2 = i2;
+    it1.sort_unstable();
+    it2.sort_unstable();
+    sorted_difference(it2.iter(), it1.iter())
+        .map(|&f| f)
+        .collect::<Vec<usize>>()
 }
