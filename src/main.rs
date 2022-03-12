@@ -9,9 +9,9 @@ use crate::{comm::PID, maps::*, mem::*};
 
 pub mod comm;
 pub mod def;
+pub mod gui;
 pub mod maps;
 pub mod mem;
-pub mod gui;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

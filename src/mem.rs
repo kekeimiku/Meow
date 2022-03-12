@@ -28,8 +28,8 @@ pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, io::Error> {
     Ok(payload.len())
 }
 
-pub fn search_index(buf: &[u8], target: &[u8]) -> Vec<usize> {
-    memchr::memmem::find_iter(buf, target).collect::<Vec<usize>>()
+pub fn search_index(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
+    memchr::memmem::find_iter(haystack, needle).collect::<Vec<usize>>()
 }
 
 pub fn search_all_rw_mem(target: &[u8]) -> Vec<usize> {

@@ -180,7 +180,7 @@ pub fn readmaps_all_r() -> Vec<MapRange> {
     get_process_maps()
         .unwrap()
         .into_iter()
-        .filter(|m| m.is_read() && m.pathname()!="[vvar]" )
+        .filter(|m| m.is_read() && m.pathname() != "[vvar]")
         .collect::<Vec<MapRange>>()
 }
 
