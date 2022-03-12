@@ -3,7 +3,7 @@ use std::{
     io::{Read, Result},
 };
 
-use crate::def::PID;
+use crate::comm::PID;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MapRange {
@@ -109,6 +109,7 @@ pub fn readmaps_java_heap() -> Vec<MapRange> {
         .collect::<Vec<MapRange>>()
 }
 
+// pathname is none
 pub fn readmaps_a_anonmyous() -> Vec<MapRange> {
     get_process_maps()
         .unwrap()
@@ -167,11 +168,19 @@ pub fn readmaps_other() -> Vec<MapRange> {
         .collect::<Vec<MapRange>>()
 }
 
-pub fn readmaps_all() -> Vec<MapRange> {
+pub fn readmaps_all_rw() -> Vec<MapRange> {
     get_process_maps()
         .unwrap()
         .into_iter()
         .filter(|m| m.is_read() && m.is_write())
+        .collect::<Vec<MapRange>>()
+}
+
+pub fn readmaps_all_r() -> Vec<MapRange> {
+    get_process_maps()
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.is_read() && m.pathname()!="[vvar]" )
         .collect::<Vec<MapRange>>()
 }
 

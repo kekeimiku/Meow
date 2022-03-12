@@ -4,6 +4,8 @@ use std::{
     path::Path,
 };
 
+pub static mut PID: i32 = -1;
+
 pub fn get_pid_by_name(name: &str) -> Option<Vec<i32>> {
     let mut pid: Vec<i32> = Vec::new();
     for process in fs::read_dir("/proc").unwrap() {
