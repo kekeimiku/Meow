@@ -15,7 +15,7 @@ pub fn get_pid_by_name(name: &str) -> Option<Vec<i32>> {
             let mut s = String::new();
             f.read_to_string(&mut s).unwrap();
             if s.trim() == name {
-                let split = comm.split("/").collect::<Vec<&str>>();
+                let split = comm.split('/').collect::<Vec<&str>>();
                 pid.push(split[2].parse::<i32>().unwrap());
             }
         }

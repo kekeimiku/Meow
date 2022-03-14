@@ -24,10 +24,7 @@ path = "tests/tests.rs"
 
 [dependencies]
 memchr = { version = "2" }
-fltk = "^1.3"
-# walkdir = "2"
-# rustyline = "9.1.0"
-# colored = "2"
+# fltk = "^1.3"
 
 [profile.release]
 lto = true

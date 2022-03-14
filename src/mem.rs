@@ -14,7 +14,7 @@ pub fn read_bytes(address: usize, size: usize) -> Result<Vec<u8>, io::Error> {
     let mut file = File::open(&Path::new(&format!("/proc/{}/mem", unsafe { PID })))?;
     file.seek(SeekFrom::Start(address as u64))?;
     let mut buffer = vec![0; size];
-    file.read(&mut buffer)?;
+    file.read_exact(&mut buffer)?;
     Ok(buffer)
 }
 
@@ -95,6 +95,6 @@ pub fn x1(i1: Vec<usize>, i2: Vec<usize>) -> Vec<usize> {
     it1.sort_unstable();
     it2.sort_unstable();
     sorted_difference(it2.iter(), it1.iter())
-        .map(|&f| f)
+        .copied()
         .collect::<Vec<usize>>()
 }

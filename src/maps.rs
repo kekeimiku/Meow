@@ -50,13 +50,13 @@ pub fn get_process_maps() -> Result<Vec<MapRange>> {
 
 pub fn parse_proc_maps(contents: &str) -> Vec<MapRange> {
     let mut vec: Vec<MapRange> = Vec::new();
-    for line in contents.split("\n") {
+    for line in contents.split('\n') {
         let mut split = line.split_whitespace();
         let range = split.next();
-        if range == None {
+        if range.is_none() {
             break;
         }
-        let mut range_split = range.unwrap().split("-");
+        let mut range_split = range.unwrap().split('-');
         let range_start = range_split.next().unwrap();
         let range_end = range_split.next().unwrap();
         let flags = split.next().unwrap();
@@ -70,7 +70,7 @@ pub fn parse_proc_maps(contents: &str) -> Vec<MapRange> {
             offset: usize::from_str_radix(offset, 16).unwrap(),
             dev: dev.to_string(),
             flags: flags.to_string(),
-            inode: usize::from_str_radix(inode, 10).unwrap(),
+            inode: inode.parse::<usize>().unwrap(),
             pathname: split.collect::<Vec<&str>>().join(" "),
         });
     }
@@ -114,7 +114,7 @@ pub fn readmaps_a_anonmyous() -> Vec<MapRange> {
     get_process_maps()
         .unwrap()
         .into_iter()
-        .filter(|m| m.pathname().len() < 1 && m.is_read() && m.is_write())
+        .filter(|m| m.pathname().is_empty() && m.is_read() && m.is_write())
         .collect::<Vec<MapRange>>()
 }
 

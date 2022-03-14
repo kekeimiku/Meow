@@ -15,7 +15,7 @@ where
     type Item = W;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(elm1) = self.it1.next() {
+        for elm1 in self.it1.by_ref() {
             'inner: loop {
                 match self.it2.peek().map(|elm2| elm1.cmp(elm2)) {
                     None => return Some(elm1),
