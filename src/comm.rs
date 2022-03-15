@@ -1,29 +1,41 @@
 use std::{
+    env,
     fs::{self, File},
     io::Read,
+    lazy::SyncLazy,
     path::Path,
+    process::exit,
 };
 
-pub static mut PID: i32 = -1;
+pub static PID: SyncLazy<i32> = SyncLazy::new(|| -> i32 {
+    match env::args().nth(1) {
+        Some(arg) => get_pid_by_name(&arg).unwrap_or_else(|| {
+            println!("没找到");
+            exit(1);
+        }),
+        _ => {
+            println!("需要一个命令行参数");
+            exit(1);
+        }
+    }
+});
 
-pub fn get_pid_by_name(name: &str) -> Option<Vec<i32>> {
-    let mut pid: Vec<i32> = Vec::new();
-    for process in fs::read_dir("/proc").unwrap() {
+pub fn get_pid_by_name(name: &str) -> Option<i32> {
+    let mut pid: Option<i32> = Default::default();
+    fs::read_dir("/proc").unwrap().for_each(|process| {
         let comm = format!("{}/comm", process.unwrap().path().display());
         let file = File::open(Path::new(&comm));
         if let Ok(mut f) = file {
             let mut s = String::new();
             f.read_to_string(&mut s).unwrap();
             if s.trim() == name {
-                let split = comm.split('/').collect::<Vec<&str>>();
-                pid.push(split[2].parse::<i32>().unwrap());
+                pid = Some(
+                    comm.split('/').collect::<Vec<&str>>()[2]
+                        .parse::<i32>()
+                        .unwrap(),
+                );
             }
         }
-    }
-
-    if pid.is_empty() {
-        None
-    } else {
-        Some(pid)
-    }
+    });
+    pid
 }

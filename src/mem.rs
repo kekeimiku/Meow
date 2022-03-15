@@ -2,6 +2,7 @@ use std::{
     fs::{File, OpenOptions},
     io::{self, Read, Seek, SeekFrom, Write},
     path::Path,
+    thread::spawn,
 };
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
 };
 
 pub fn read_bytes(address: usize, size: usize) -> Result<Vec<u8>, io::Error> {
-    let mut file = File::open(&Path::new(&format!("/proc/{}/mem", unsafe { PID })))?;
+    let mut file = File::open(&Path::new(&format!("/proc/{}/mem", *PID)))?;
     file.seek(SeekFrom::Start(address as u64))?;
     let mut buffer = vec![0; size];
     file.read_exact(&mut buffer)?;
@@ -22,7 +23,7 @@ pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, io::Error> {
     let mut file = OpenOptions::new()
         .read(true)
         .write(true)
-        .open(&Path::new(&format!("/proc/{}/mem", unsafe { PID })))?;
+        .open(&Path::new(&format!("/proc/{}/mem", *PID)))?;
     file.seek(SeekFrom::Start(address as u64))?;
     file.write_all(payload)?;
     Ok(payload.len())
@@ -87,6 +88,17 @@ pub fn search_c_alloc(target: &[u8]) -> Vec<usize> {
         }
     });
     s
+}
+
+pub fn freeze(list: Vec<usize>, payload: &'static [u8], flag: bool) {
+    spawn(move || loop {
+        if !flag {
+            break;
+        }
+        list.iter().for_each(|f| {
+            write_bytes(*f, payload).unwrap();
+        });
+    });
 }
 
 pub fn x1(i1: Vec<usize>, i2: Vec<usize>) -> Vec<usize> {

@@ -41,7 +41,7 @@ impl MapRange {
 }
 
 pub fn get_process_maps() -> Result<Vec<MapRange>> {
-    let maps_file = format!("/proc/{}/maps", unsafe { PID });
+    let maps_file = format!("/proc/{}/maps", *PID);
     let mut file = File::open(maps_file)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
