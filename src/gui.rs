@@ -1,28 +1,37 @@
-use fltk::{app::*, browser::*, button::*, enums::*, input::*, prelude::*, window::*};
+use fltk::{
+    app::{channel, App},
+    browser::HoldBrowser,
+    button::Button,
+    enums::CallbackTrigger,
+    input::Input,
+    prelude::{BrowserExt, GroupExt, InputExt, WidgetExt},
+    window::Window,
+};
+use sysinfo::{ProcessExt, System, SystemExt};
 
-const WIDGET_WIDTH: i32 = 70;
-const WIDGET_HEIGHT: i32 = 25;
-const WIDGET_PADDING: i32 = 10;
+const WIDGET_WIDTH: i32 = 140;
+const WIDGET_HEIGHT: i32 = 50;
+const WIDGET_PADDING: i32 = 20;
 
 #[derive(Clone, Copy)]
 enum Message {
-    Create,
     Update,
-    Delete,
     Select,
+    Okkk,
     Filter,
 }
 
 pub fn gui() {
-    let app = App::default().with_scheme(Scheme::Gtk);
-    let mut wind = Window::default().with_label("demo1");
+    let app = App::default();
+    let mut window = Window::default().with_label("LINCE");
 
     let (sender, receiver) = channel::<Message>();
 
     let mut filter_input = Input::default()
-        .with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
-        .with_pos(WIDGET_PADDING + WIDGET_WIDTH * 2, WIDGET_PADDING)
-        .with_label("Filter prefix:");
+        .with_size(WIDGET_WIDTH * 3, WIDGET_HEIGHT / 2)
+        .with_pos(WIDGET_PADDING, WIDGET_PADDING);
+    //.with_label("Search: ");
+    // filter_input.set_value("搜索：");
     filter_input.set_trigger(CallbackTrigger::Changed);
     filter_input.emit(sender, Message::Filter);
 
@@ -34,95 +43,107 @@ pub fn gui() {
         .with_size(WIDGET_WIDTH * 3, WIDGET_HEIGHT * 4);
     list_browser.emit(sender, Message::Select);
 
-    let name_input = Input::default()
-        .with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
-        .with_pos(
-            list_browser.x() + list_browser.width() + WIDGET_PADDING + WIDGET_WIDTH,
-            list_browser.y(),
-        )
-        .with_label("Name:");
-
-    let surname_input = Input::default()
-        .with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
-        .below_of(&name_input, WIDGET_PADDING)
-        .with_label("Surname:");
-
-    let mut create_button = Button::default()
-        .with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
+    let mut update_button = Button::default()
+        .with_size(WIDGET_WIDTH / 2, WIDGET_HEIGHT / 2)
         .with_pos(
             WIDGET_PADDING,
             list_browser.y() + list_browser.height() + WIDGET_PADDING,
         )
-        .with_label("Create");
-    create_button.emit(sender, Message::Create);
-
-    let mut update_button = Button::default()
-        .with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
-        .right_of(&create_button, WIDGET_PADDING)
-        .with_label("Update");
+        .with_label("刷新");
     update_button.emit(sender, Message::Update);
-    update_button.deactivate();
+    update_button.activate();
 
-    let mut delete_button = Button::default()
-        .with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
+    // update_button.set_color(BLUE);
+    // update_button.set_selection_color(SEL_BLUE);
+    // update_button.set_label_color(Color::White);
+
+    let mut select_button = Button::default()
+        .with_size(WIDGET_WIDTH / 2, WIDGET_HEIGHT / 2)
         .right_of(&update_button, WIDGET_PADDING)
-        .with_label("Delete");
-    delete_button.emit(sender, Message::Delete);
-    delete_button.deactivate();
+        .with_label("选择");
+    select_button.emit(sender, Message::Okkk);
+    select_button.deactivate();
 
-    let mut model = vec![
-        // "Babbage, Charles".to_string(),
-        // "Lovelace, Ada".to_string(),
-        // "Turing, Alan".to_string(),
-    ];
+    // select_button.set_color(BLUE);
+    // select_button.set_selection_color(SEL_BLUE);
+    // select_button.set_label_color(Color::White);
+
+    let mut processes_list: Vec<String> = Default::default();
+
+    let mut sys = System::new_all();
+
+    let list_refresh = {
+        sys.refresh_processes();
+        sys.processes()
+            .iter()
+            .map(|f| (f.0.to_string(), f.1.name().to_string()))
+            .collect::<Vec<(String, String)>>()
+    };
+
+    list_refresh
+        .iter()
+        .map(|f| format!("{} -> {}", f.1, f.0))
+        .for_each(|f| processes_list.push(f));
+
     sender.send(Message::Filter);
 
-    let formatted_name = || format!("{}no input {}", surname_input.value(), name_input.value());
-
-    wind.set_size(
-        name_input.x() + name_input.width() + WIDGET_PADDING,
-        create_button.y() + create_button.height() + WIDGET_PADDING,
+    window.set_size(
+        list_browser.x() + list_browser.width() + WIDGET_PADDING,
+        select_button.y() + update_button.height() + WIDGET_PADDING,
     );
-    wind.end();
-    wind.show();
+    window.end();
+    window.show();
     while app.wait() {
         match receiver.recv() {
-            Some(Message::Create) => {
-                model.push(formatted_name());
-                sender.send(Message::Filter);
-            }
             Some(Message::Update) => {
-                let selected_name = list_browser.text(list_browser.value()).unwrap();
-                let index = model.iter().position(|s| s == &selected_name).unwrap();
-                model[index] = formatted_name();
+                processes_list.clear();
+
+                let list_refresh = {
+                    sys.refresh_processes();
+                    sys.processes()
+                        .iter()
+                        .map(|f| (f.0.to_string(), f.1.name().to_string()))
+                        .collect::<Vec<(String, String)>>()
+                };
+
+                list_refresh
+                    .iter()
+                    .map(|f| format!("{} -> {}", f.1, f.0))
+                    .for_each(|f| processes_list.push(f));
+
                 sender.send(Message::Filter);
             }
-            Some(Message::Delete) => {
+
+            Some(Message::Okkk) => {
                 let selected_name = list_browser.text(list_browser.value()).unwrap();
-                let index = model.iter().position(|s| s == &selected_name).unwrap();
-                model.remove(index);
-                sender.send(Message::Filter);
-                sender.send(Message::Select)
+                let index = processes_list
+                    .iter()
+                    .position(|s| s == &selected_name)
+                    .unwrap();
+                println!("{}", processes_list[index]);
+                // sender.send(Message::Select)
             }
+
             Some(Message::Select) => {
                 if list_browser.value() == 0 {
-                    update_button.deactivate();
-                    delete_button.deactivate();
+                    // update_button.deactivate();
+                    select_button.deactivate();
                 } else {
-                    update_button.activate();
-                    delete_button.activate();
+                    // update_button.activate();
+                    select_button.activate();
                 }
             }
             Some(Message::Filter) => {
                 let prefix = filter_input.value().to_lowercase();
                 list_browser.clear();
-                for item in &model {
+                for item in &processes_list {
                     if item.to_lowercase().starts_with(&prefix) {
                         list_browser.add(item);
                     }
                 }
                 sender.send(Message::Select)
             }
+
             None => {}
         }
     }
