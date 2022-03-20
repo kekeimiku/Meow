@@ -5,6 +5,8 @@ use std::{
     thread::spawn,
 };
 
+use memchr::memmem::find_iter;
+
 use crate::{
     comm::PID,
     maps::{readmaps_all_r, readmaps_all_rw, readmaps_c_alloc},
@@ -29,16 +31,15 @@ pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, io::Error> {
     Ok(payload.len())
 }
 
-pub fn search_index(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
-    memchr::memmem::find_iter(haystack, needle).collect::<Vec<usize>>()
-}
+// pub fn search_index(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
+//     memchr::memmem::find_iter(haystack, needle).collect::<Vec<usize>>()
+// }
 
 pub fn search_all_rw_mem(target: &[u8]) -> Vec<usize> {
     let mut s: Vec<usize> = Default::default();
     readmaps_all_rw().iter().for_each(|f| {
         let buf = read_bytes(f.start(), f.end() - f.start());
-        let target = search_index(&buf.unwrap(), target)
-            .iter()
+        let target = find_iter(&buf.unwrap(), target)
             .map(|m| m + f.start())
             .collect::<Vec<usize>>();
         if !target.is_empty() {
@@ -55,8 +56,7 @@ pub fn search_all_r_mem(target: &[u8]) -> Vec<usize> {
 
         match buf {
             Ok(ok) => {
-                let target = search_index(&ok, target)
-                    .iter()
+                let target = find_iter(&ok, target)
                     .map(|m| m + f.start())
                     .collect::<Vec<usize>>();
                 if !target.is_empty() {
@@ -79,8 +79,7 @@ pub fn search_c_alloc(target: &[u8]) -> Vec<usize> {
     let mut s: Vec<usize> = Default::default();
     readmaps_c_alloc().iter().for_each(|f| {
         let buf = read_bytes(f.start(), f.end() - f.start());
-        let target = search_index(&buf.unwrap(), target)
-            .iter()
+        let target = find_iter(&buf.unwrap(), target)
             .map(|m| m + f.start())
             .collect::<Vec<usize>>();
         if !target.is_empty() {
