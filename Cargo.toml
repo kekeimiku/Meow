@@ -14,13 +14,13 @@ bench = false
 path = "src/main.rs"
 name = "lince"
 
-[[bench]]
-name = "integration_bench"
-path = "bench/benchs.rs"
+# [[bench]]
+# name = "integration_bench"
+# path = "bench/benchs.rs"
 
-[[test]]
-name = "integration_test"
-path = "tests/tests.rs"
+# [[test]]
+# name = "integration_test"
+# path = "tests/tests.rs"
 
 [dependencies]
 memchr = { version = "2", default-features = false }
