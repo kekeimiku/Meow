@@ -1,9 +1,5 @@
 #![feature(once_cell)]
 
-use std::{thread::sleep, time::Duration};
-
-use lince::mem::{read_bytes, search_all_rw_mem};
-
 pub mod comm;
 pub mod def;
 
@@ -22,28 +18,31 @@ fn main() {
     //     sleep(Duration::from_secs(1));
     // }
 
+    // let mut xx = HashMap::new();
+    // xx.insert(1, 2);
+
     let mut i = 0;
 
     let hello = "hello".as_bytes();
 
     loop {
-        let l = search_all_rw_mem(&hello);
+        let l = lince::mem::search_all_rw_mem(hello);
 
         if l.len() < 11 {
             l.iter().for_each(|f| {
-                let a = read_bytes(*f, hello.len());
+                let a = lince::mem::read_bytes(*f, hello.len());
                 println!("{:x} -> {:?}", f, a.unwrap());
             });
         } else {
             l[0..10].iter().for_each(|f| {
-                let a = read_bytes(*f, hello.len());
+                let a = lince::mem::read_bytes(*f, hello.len());
                 println!("{:x} -> {:?}", f, a.unwrap());
             });
         }
 
         i += 1;
         println!("============={}===========================", i);
-        sleep(Duration::from_secs(1))
+        std::thread::sleep(std::time::Duration::from_secs(1))
     }
 }
 
