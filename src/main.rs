@@ -1,12 +1,5 @@
 #![feature(once_cell)]
 
-pub mod comm;
-pub mod def;
-
-pub mod maps;
-pub mod mem;
-pub mod sdiff;
-
 fn main() {
     // '0x7fff5ea93408'
     // loop {
@@ -26,7 +19,7 @@ fn main() {
     let hello = "hello".as_bytes();
 
     loop {
-        let l = lince::mem::search_all_rw_mem(hello);
+        let l = lince::mem::search_all_rw_mem(hello).unwrap();
 
         if l.len() < 11 {
             l.iter().for_each(|f| {

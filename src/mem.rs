@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{self, Read, Seek, SeekFrom, Write},
+    io::{Error, Read, Seek, SeekFrom, Write},
     path::Path,
     thread::spawn,
 };
@@ -13,7 +13,7 @@ use crate::{
     sdiff::sorted_difference,
 };
 
-pub fn read_bytes(address: usize, size: usize) -> Result<Vec<u8>, io::Error> {
+pub fn read_bytes(address: usize, size: usize) -> Result<Vec<u8>, Error> {
     let mut file = File::open(&Path::new(&format!("/proc/{}/mem", *PID)))?;
     file.seek(SeekFrom::Start(address as u64))?;
     let mut buffer = vec![0; size];
@@ -21,7 +21,7 @@ pub fn read_bytes(address: usize, size: usize) -> Result<Vec<u8>, io::Error> {
     Ok(buffer)
 }
 
-pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, io::Error> {
+pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, Error> {
     let mut file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -31,58 +31,40 @@ pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, io::Error> {
     Ok(payload.len())
 }
 
-pub fn search_all_rw_mem(v: &[u8]) -> Vec<usize> {
-    let mut s: Vec<usize> = Default::default();
-    readmaps_all_rw().iter().for_each(|f| {
-        let buf = read_bytes(f.start(), f.end() - f.start());
-        let target = find_iter(&buf.unwrap(), v)
+pub fn search_all_rw_mem(v: &[u8]) -> Result<Vec<usize>, Error> {
+    for f in readmaps_all_rw()?.iter() {
+        let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, v)
             .map(|m| m + f.start())
             .collect::<Vec<usize>>();
-        if !target.is_empty() {
-            s = target.into_iter().collect::<Vec<usize>>();
+        if !vl.is_empty() {
+            return Ok(vl.into_iter().collect::<Vec<usize>>());
         }
-    });
-    s
+    }
+    Ok(Default::default())
 }
 
-pub fn search_all_r_mem(v: &[u8]) -> Vec<usize> {
-    let mut s: Vec<usize> = Default::default();
-    readmaps_all_r().iter().for_each(|f| {
-        let buf = read_bytes(f.start(), f.end() - f.start());
-
-        match buf {
-            Ok(ok) => {
-                let target = find_iter(&ok, v)
-                    .map(|m| m + f.start())
-                    .collect::<Vec<usize>>();
-                if !target.is_empty() {
-                    s = target.into_iter().collect::<Vec<usize>>();
-                }
-            }
-            Err(err) => println!(
-                "搜索失败的区域 {:x}-{:x} {}  error: {}",
-                f.start(),
-                f.end(),
-                f.pathname(),
-                err
-            ),
-        }
-    });
-    s
-}
-
-pub fn search_c_alloc(v: &[u8]) -> Vec<usize> {
-    let mut s: Vec<usize> = Default::default();
-    readmaps_c_alloc().iter().for_each(|f| {
-        let buf = read_bytes(f.start(), f.end() - f.start());
-        let target = find_iter(&buf.unwrap(), v)
+pub fn search_all_r_mem(v: &[u8]) -> Result<Vec<usize>, Error> {
+    for f in readmaps_all_r()?.iter() {
+        let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, v)
             .map(|m| m + f.start())
             .collect::<Vec<usize>>();
-        if !target.is_empty() {
-            s = target.into_iter().collect::<Vec<usize>>();
+        if !vl.is_empty() {
+            return Ok(vl.into_iter().collect::<Vec<usize>>());
         }
-    });
-    s
+    }
+    Ok(Default::default())
+}
+
+pub fn search_c_alloc(v: &[u8]) -> Result<Vec<usize>, Error> {
+    for f in readmaps_c_alloc()?.iter() {
+        let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, v)
+            .map(|m| m + f.start())
+            .collect::<Vec<usize>>();
+        if !vl.is_empty() {
+            return Ok(vl.into_iter().collect::<Vec<usize>>());
+        }
+    }
+    Ok(Default::default())
 }
 
 pub fn freeze(list: Vec<usize>, payload: &'static [u8], flag: bool) {
