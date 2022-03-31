@@ -5,7 +5,6 @@ use std::{
 
 use crate::comm::PID;
 
-#[derive(Debug, Clone, PartialEq)]
 pub struct MapRange {
     pub range_start: usize,
     pub range_end: usize,
@@ -167,10 +166,4 @@ pub fn readmaps_all_r() -> Result<Vec<MapRange>> {
         .into_iter()
         .filter(|m| m.is_read() && m.pathname() != "[vvar]")
         .collect::<Vec<MapRange>>())
-}
-
-pub fn find_index(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
-    (0..haystack.len() - needle.len() + 1)
-        .filter(|&i| haystack[i..i + needle.len()] == needle[..])
-        .collect()
 }

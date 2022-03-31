@@ -21,7 +21,7 @@ enum Message {
     Filter,
 }
 
-pub fn gui() {
+pub fn gui() -> Result<(), String> {
     let app = App::default();
     let mut window = Window::default().with_label("LINCE");
 
@@ -118,8 +118,7 @@ pub fn gui() {
                 let selected_name = list_browser.text(list_browser.value()).unwrap();
                 let index = processes_list
                     .iter()
-                    .position(|s| s == &selected_name)
-                    .unwrap();
+                    .position(|s| s == &selected_name).ok_or("err")?;
                 println!("{}", processes_list[index]);
                 // sender.send(Message::Select)
             }
@@ -147,4 +146,6 @@ pub fn gui() {
             None => {}
         }
     }
+
+    Ok(())
 }

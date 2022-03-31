@@ -1,0 +1,15 @@
+[package]
+name = "elf-lite"
+version = "0.1.0"
+authors = ["kk <kekelanact@gmail.com>"]
+readme = "README.md"
+description = """Pure Rust, Zero allocation, no_std"""
+edition = "2021"
+
+[lib]
+name = "elf"
+
+[features]
+default = ["64", "32"]
+64 = []
+32 = []
