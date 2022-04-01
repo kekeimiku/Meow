@@ -5,6 +5,7 @@ use std::{
 
 use crate::comm::PID;
 
+#[derive(Debug)]
 pub struct MapRange {
     pub range_start: usize,
     pub range_end: usize,

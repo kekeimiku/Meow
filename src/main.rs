@@ -1,27 +1,26 @@
 use std::{
-    fs::{self, File},
-    io::{Error, Read, Seek, SeekFrom},
+    fs::{self},
+    io::{Error},
     path::Path,
     thread::sleep,
     time::Duration,
 };
 
-use lince::mem::{read_bytes, search_all_rw_mem};
+use elf::elf64::Elf64;
+use lince::{
+    mem::{read_bytes, search_all_rw_mem},
+};
 
 fn gg() {
-    let mut i = 0;
-
     let bytes = fs::read(Path::new("elf/tests/bin/armelf64")).unwrap();
-    let elf = elf::elf64::Elf64::new(&bytes);
-    // println!("ehdr=> {:?}", elf.ehdr());
-    println!("节区表数量：{}", elf.ehdr().e_shnum);
+    let elf = Elf64::parse(&bytes);
+    dbg!(elf.ehdr());
     elf.phdr_iter().for_each(|f| {
-        // println!("phdr=> {:?}", f);
+        dbg!(f);
     });
 
     elf.shdr_iter().for_each(|f| {
-        println!("[{}] shdr=> {:?}", i, f);
-        i += 1;
+        dbg!(f);
     })
 }
 

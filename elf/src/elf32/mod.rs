@@ -10,7 +10,7 @@ pub struct Elf32<'a> {
 }
 
 impl<'a> Elf32<'_> {
-    pub fn new(bytes: &'a [u8]) -> Elf32 {
+    pub fn parse(bytes: &'a [u8]) -> Elf32 {
         let ehdr = Elf32_Ehdr::new(bytes);
         Elf32 { bytes, ehdr }
     }

@@ -1,0 +1,24 @@
+[package]
+name = "maps"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bench]]
+name = "bench_maps"
+path = "bench/nostdmaps.rs"
+
+[dependencies]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
