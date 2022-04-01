@@ -4,15 +4,15 @@ mod ehdr;
 mod phdr;
 mod shdr;
 
-pub struct Elf32<'a> {
+pub struct Parse<'a> {
     bytes: &'a [u8],
     ehdr: Elf32_Ehdr,
 }
 
-impl<'a> Elf32<'_> {
-    pub fn parse(bytes: &'a [u8]) -> Elf32 {
+impl<'a> Parse<'_> {
+    pub fn new(bytes: &'a [u8]) -> Parse {
         let ehdr = Elf32_Ehdr::new(bytes);
-        Elf32 { bytes, ehdr }
+        Parse { bytes, ehdr }
     }
 
     pub fn ehdr(&self) -> &Elf32_Ehdr {
@@ -50,7 +50,7 @@ impl<'a> Elf32<'_> {
 
 pub struct Elf32PhdrIter<'a> {
     index: u16,
-    elf32: &'a Elf32<'a>,
+    elf32: &'a Parse<'a>,
 }
 
 impl Iterator for Elf32PhdrIter<'_> {
@@ -69,7 +69,7 @@ impl Iterator for Elf32PhdrIter<'_> {
 
 pub struct Elf32ShdrIter<'a> {
     index: u16,
-    elf32: &'a Elf32<'a>,
+    elf32: &'a Parse<'a>,
 }
 
 impl Iterator for Elf32ShdrIter<'_> {

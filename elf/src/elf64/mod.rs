@@ -4,16 +4,16 @@ mod shdr;
 
 use self::{ehdr::Elf64_Ehdr, phdr::Elf64_Phdr, shdr::Elf64_Shdr};
 
-pub struct Elf64<'a> {
+pub struct Parse<'a> {
     bytes: &'a [u8],
     ehdr: Elf64_Ehdr,
 }
 
-impl<'a> Elf64<'_> {
-    pub fn parse(bytes: &'a [u8]) -> Elf64 {
+impl<'a> Parse<'_> {
+    pub fn new(bytes: &'a [u8]) -> Parse {
         let ehdr = Elf64_Ehdr::new(bytes);
 
-        Elf64 { bytes, ehdr }
+        Parse { bytes, ehdr }
     }
 
     pub fn ehdr(&self) -> &Elf64_Ehdr {
@@ -51,7 +51,7 @@ impl<'a> Elf64<'_> {
 
 pub struct Elf64PhdrIter<'a> {
     index: u16,
-    elf64: &'a Elf64<'a>,
+    elf64: &'a Parse<'a>,
 }
 
 impl Iterator for Elf64PhdrIter<'_> {
@@ -70,7 +70,7 @@ impl Iterator for Elf64PhdrIter<'_> {
 
 pub struct Elf64ShdrIter<'a> {
     index: u16,
-    elf64: &'a Elf64<'a>,
+    elf64: &'a Parse<'a>,
 }
 
 impl Iterator for Elf64ShdrIter<'_> {

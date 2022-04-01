@@ -1,19 +1,17 @@
 use std::{
     fs::{self},
-    io::{Error},
+    io::Error,
     path::Path,
     thread::sleep,
     time::Duration,
 };
 
-use elf::elf64::Elf64;
-use lince::{
-    mem::{read_bytes, search_all_rw_mem},
-};
+use elf::elf64;
+use lince::mem::{read_bytes, search_all_rw_mem};
 
 fn gg() {
     let bytes = fs::read(Path::new("elf/tests/bin/armelf64")).unwrap();
-    let elf = Elf64::parse(&bytes);
+    let elf = elf64::Parse::new(&bytes);
     dbg!(elf.ehdr());
     elf.phdr_iter().for_each(|f| {
         dbg!(f);
