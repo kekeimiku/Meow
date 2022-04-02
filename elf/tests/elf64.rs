@@ -1,12 +1,12 @@
 use std::{fs::read, path::Path};
 
-use elf::elf64::Elf64;
+use elf::elf64::Parse;
 
 #[test]
 fn test_elf64() {
     let bytes = read(Path::new("/usr/lib/libc.so.6")).unwrap();
 
-    let elf = Elf64::new(&bytes);
+    let elf = Parse::new(&bytes);
 
     println!("{:?}", elf.ehdr());
 
