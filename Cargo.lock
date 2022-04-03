@@ -3,6 +3,10 @@
 version = 3
 
 [[package]]
+name = "args"
+version = "0.1.0"
+
+[[package]]
 name = "elf-lite"
 version = "0.1.0"
 
@@ -10,6 +14,7 @@ version = "0.1.0"
 name = "lince"
 version = "0.1.0"
 dependencies = [
+ "args",
  "elf-lite",
  "memchr",
 ]

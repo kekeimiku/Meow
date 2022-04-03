@@ -64,30 +64,6 @@ pub struct MapRangeStd {
     pub pathname: String,
 }
 
-// impl MapRangeStd {
-//     pub fn size(&self) -> usize {
-//         self.range_end - self.range_start
-//     }
-//     pub fn start(&self) -> usize {
-//         self.range_start
-//     }
-//     pub fn end(&self) -> usize {
-//         self.range_end
-//     }
-//     pub fn pathname(&self) -> &String {
-//         &self.pathname
-//     }
-//     pub fn is_exec(&self) -> bool {
-//         &self.flags[2..3] == "x"
-//     }
-//     pub fn is_write(&self) -> bool {
-//         &self.flags[1..2] == "w"
-//     }
-//     pub fn is_read(&self) -> bool {
-//         &self.flags[0..1] == "r"
-//     }
-// }
-
 pub fn std_parse_proc_maps(contents: &str) -> Vec<MapRangeStd> {
     let mut vec: Vec<MapRangeStd> = Vec::new();
     for line in contents.split('\n') {
@@ -128,30 +104,6 @@ pub struct MapRange<'a> {
     pub inode: usize,
     pub pathname: &'a str,
 }
-
-// impl MapRange<'_> {
-//     pub fn size(&self) -> usize {
-//         self.range_end - self.range_start
-//     }
-//     pub fn start(&self) -> usize {
-//         self.range_start
-//     }
-//     pub fn end(&self) -> usize {
-//         self.range_end
-//     }
-//     pub fn pathname(&self) -> &str {
-//         &self.pathname
-//     }
-//     pub fn is_exec(&self) -> bool {
-//         &self.flags[2..3] == "x"
-//     }
-//     pub fn is_write(&self) -> bool {
-//         &self.flags[1..2] == "w"
-//     }
-//     pub fn is_read(&self) -> bool {
-//         &self.flags[0..1] == "r"
-//     }
-// }
 
 pub fn no_std_parse_proc_maps(maps_file: &str) -> Vec<MapRange> {
     let mut vec: Vec<MapRange> = Vec::new();

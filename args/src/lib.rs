@@ -2,22 +2,16 @@ use core::{fmt::Display, str::FromStr};
 
 #[derive(Debug)]
 pub enum Error {
-    NonUtf8Argument(usize),
-
-    MissingOption(Keys),
-
-    OptionWithoutAValue(&'static str),
-
-    OptionValueParsingFailed(&'static str, String),
-
-    UnusedArgsLeft(Vec<String>),
+    NoneArgument,
+    NonUtf8Argument,
+    OptionWithoutAValue,
+    OptionValueParsingFailed,
 }
 
-#[derive(Debug)]
 pub struct Args(Vec<String>);
 
 impl Args {
-    pub fn init() -> Result<Self, Error> {
+    pub fn new() -> Result<Self, Error> {
         let mut args = Vec::new();
         for (i, arg) in std::env::args_os().enumerate() {
             if let Ok(s) = arg.into_string() {
@@ -25,19 +19,19 @@ impl Args {
                     args.push(s);
                 }
             } else {
-                return Err(Error::NonUtf8Argument(i));
+                return Err(Error::NonUtf8Argument);
             }
+        }
+
+        if args.is_empty() {
+            return Err(Error::NoneArgument);
         }
 
         Ok(Args(args))
     }
 
     pub fn contains<A: Into<Keys>>(&mut self, keys: A) -> bool {
-        self.contains_impl(keys.into())
-    }
-
-    fn contains_impl(&mut self, keys: Keys) -> bool {
-        if let Some((idx, _)) = self.index_of(keys) {
+        if let Some((idx, _)) = self.index_of(keys.into()) {
             self.0.remove(idx);
             return true;
         }
@@ -45,7 +39,7 @@ impl Args {
         false
     }
 
-    pub fn new<A, T>(&mut self, keys: A) -> Result<Option<T>, Error>
+    pub fn init<A, T>(&mut self, keys: A) -> Result<Option<T>, Error>
     where
         A: Into<Keys>,
         T: FromStr,
@@ -61,10 +55,10 @@ impl Args {
         keys: Keys,
         f: fn(&str) -> Result<T, String>,
     ) -> Result<Option<T>, Error> {
-        if let Some((idx, key)) = self.index_of(keys) {
+        if let Some((idx, _)) = self.index_of(keys) {
             let value = match self.0.get(idx + 1) {
                 Some(v) => v,
-                None => return Err(Error::OptionWithoutAValue(key)),
+                None => return Err(Error::OptionWithoutAValue),
             };
 
             match f(value) {
@@ -73,7 +67,7 @@ impl Args {
                     self.0.remove(idx);
                     Ok(Some(value))
                 }
-                Err(e) => Err(Error::OptionValueParsingFailed(key, e)),
+                Err(_) => Err(Error::OptionValueParsingFailed),
             }
         } else {
             Ok(None)
@@ -93,7 +87,6 @@ impl Args {
     }
 }
 
-#[derive(Debug)]
 pub struct Keys([&'static str; 2]);
 
 impl From<[&'static str; 2]> for Keys {
