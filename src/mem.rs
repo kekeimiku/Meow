@@ -32,12 +32,12 @@ pub fn write_bytes(address: usize, payload: &[u8]) -> Result<usize, Error> {
     Ok(payload.len())
 }
 
-pub fn search_all_rw_mem<V>(v: V) -> Result<Vec<usize>, Error>
+pub fn search_all_rw_mem<V>(v: &V) -> Result<Vec<usize>, Error>
 where
-    V: AsRef<[u8]>,
+    V: ?Sized + AsRef<[u8]>,
 {
     for f in readmaps_all_rw()?.iter() {
-        let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, &v)
+        let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, v)
             .map(|m| m + f.start())
             .collect::<Vec<usize>>();
         if !vl.is_empty() {
@@ -47,12 +47,12 @@ where
     Ok(Default::default())
 }
 
-pub fn search_all_r_mem<V>(v: V) -> Result<Vec<usize>, Error>
+pub fn search_all_r_mem<V>(v: &V) -> Result<Vec<usize>, Error>
 where
-    V: AsRef<[u8]>,
+    V: ?Sized + AsRef<[u8]>,
 {
     for f in readmaps_all_r()?.iter() {
-        let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, &v)
+        let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, v)
             .map(|m| m + f.start())
             .collect::<Vec<usize>>();
         if !vl.is_empty() {
@@ -62,9 +62,9 @@ where
     Ok(Default::default())
 }
 
-pub fn search_c_alloc<V>(v: V) -> Result<Vec<usize>, Error>
+pub fn search_c_alloc<V>(v: &V) -> Result<Vec<usize>, Error>
 where
-    V: AsRef<[u8]>,
+    V: ?Sized + AsRef<[u8]>,
 {
     for f in readmaps_c_alloc()?.iter() {
         let vl = find_iter(&read_bytes(f.start(), f.end() - f.start())?, &v)
