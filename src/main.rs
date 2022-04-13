@@ -6,7 +6,6 @@ use std::{
     time::Duration,
 };
 
-use args::Args;
 use elf::elf64;
 use lince::mem::{read_bytes, search_all_rw_mem};
 
@@ -36,17 +35,11 @@ fn main() {
     // }
 }
 
-struct TARG {
-    name: Option<String>,
-}
+
 pub fn test1() -> Result<(), Error> {
-    let mut args = Args::new().unwrap();
-    let args = TARG {        
-        name: args.init("--name").unwrap(),
-    };
 
     let mut i = 0;
-    let hello = args.name.unwrap();
+    let hello = 0x8DFFD09_u32.to_be_bytes();
     loop {
         let t = search_all_rw_mem(&hello)?;
         if t.len() < 11 {

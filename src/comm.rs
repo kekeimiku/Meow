@@ -7,36 +7,6 @@ use std::{
     process::exit,
 };
 
-use args::{Args, Error};
-
-#[derive(Debug)]
-struct TestArgs {
-    help: bool,
-    pid: Option<u32>,
-    name: Option<String>,
-}
-
-fn init_args() -> Result<TestArgs, Error> {
-    let mut args = Args::new()?;
-    let args = TestArgs {
-        help: args.contains(["--h", "-h"]),
-        pid: args.init("--pid")?,
-        name: args.init("--name")?,
-    };
-
-    if args.help {
-        println!(
-            r#"help
-        -h --help
-        --pid 12345
-        --name hello
-        "#
-        );
-    }
-
-    Ok(args)
-}
-
 pub static PID: SyncLazy<i32> = SyncLazy::new(|| -> i32 {
     match env::args().nth(1) {
         Some(arg) => get_pid_by_name(&arg).unwrap_or_else(|| {
