@@ -10,7 +10,7 @@ linux（包括android）版 cheat engine （支持图形界面，web和命令行
 
 目录结构：
     `args` 封装的简易命令行参数库
-    `decarm` 简单的aarch64反汇编器
+    `decode` 目前只是简单的aarch64反汇编器
     `maps` maps解析器
     `elf` 二进制解析器
     `src` ......
