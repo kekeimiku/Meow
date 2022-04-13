@@ -34,8 +34,11 @@
       const memory = instance.exports.memory;
       const pointer = instance.exports.alloc();
 
+      //输入
       write("\\x20\\x00\\x80\\xd2", memory.buffer, pointer);
       instance.exports.start(pointer);
+
+      //输出的结果
       console.log('结果：', read(memory.buffer, pointer));
       instance.exports.dealloc(pointer);
     })();
