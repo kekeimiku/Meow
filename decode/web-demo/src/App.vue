@@ -20,6 +20,7 @@
       type="textarea"
       placeholder="结果:"
     />
+    <div style="margin: 20px 0" />暂时只支持arm64
   </div>
 </template>
 
