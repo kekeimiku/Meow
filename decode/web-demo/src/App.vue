@@ -2,15 +2,16 @@
   <div class="main">
     <el-input
       v-model="input"
-      maxlength="16"
+      maxlength="640"
       placeholder="示例：\x20\x00\x80\xd2"
       show-word-limit
-      type="text"
+      :autosize="{ minRows: 7, maxRows: 15 }"
+      type="textarea"
     />
     <div style="margin: 20px 0" />
     <div class="button">
       <el-button type="primary" @click="submit">确认</el-button>
-      <el-button type="danger">清空</el-button>
+      <el-button type="danger" @click="clear">清空</el-button>
     </div>
     <div style="margin: 20px 0" />
     <el-input
@@ -48,12 +49,17 @@ function submit() {
     //输出的结果
     //@ts-ignore
     let r = read(memory.buffer, pointer);
-    console.log('结果：', r);
+    // console.log('结果：', r);
     result.value = r;
-    textarea.value = textarea.value + result.value + '\n';
+    textarea.value = textarea.value + result.value;
     //@ts-ignore
     instance.exports.dealloc(pointer);
   })();
+}
+
+function clear() {
+  input.value = '';
+  textarea.value = '';
 }
 
 const createInstance = async () => {
