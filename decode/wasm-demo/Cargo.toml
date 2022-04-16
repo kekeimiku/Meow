@@ -16,3 +16,4 @@ panic = "abort"
 strip = true
 
 [dependencies]
+dec = { path = "../dec", version = "0.1.0" }
