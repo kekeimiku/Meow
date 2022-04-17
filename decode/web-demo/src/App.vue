@@ -28,7 +28,7 @@
 import { ref } from 'vue'
 
 const createInstance = async () => {
-  const response = await fetch('assets/r1.wasm');
+  const response = await fetch('assets/r2.wasm');
   const bytes = await response.arrayBuffer();
   const { instance } = await WebAssembly.instantiate(bytes, {});
   return instance;
