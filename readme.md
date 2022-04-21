@@ -19,3 +19,7 @@ linux（包括android）版 cheat engine （支持图形界面，web和命令行
 	`gui` 包含web gui tui
 
 	`...` 待定...
+
+## Thanks for free JetBrains Open Source license
+
+<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." height="200"/>
