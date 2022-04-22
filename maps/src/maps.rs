@@ -1,5 +1,3 @@
-use std::{fs::File, io::Read};
-
 use crate::errors::{Error, Result};
 
 #[derive(Debug)]
@@ -37,9 +35,9 @@ impl MapRange {
     }
 }
 
-pub fn parse_proc_maps(maps: &str) -> Result<Vec<MapRange>> {
+pub fn parse_proc_maps(contents: &str) -> Result<Vec<MapRange>> {
     let mut vec: Vec<MapRange> = Vec::new();
-    for line in maps.split('\n') {
+    for line in contents.split('\n') {
         let mut split = line.split_whitespace();
         let range = split.next();
         if range.is_none() {
