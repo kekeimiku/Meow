@@ -1,4 +1,4 @@
-use crate::errors::{Error, Result};
+use crate::error::{Error, Result};
 
 #[derive(Debug)]
 pub struct MapRange {
