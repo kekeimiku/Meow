@@ -1,3 +1,4 @@
 Cargo.lock
 target/
 src/main.rs
+.idea/

@@ -1,9 +1,12 @@
+use std::fmt::write;
+
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
     SplitNextError,
     PidNotFound,
+    ReadMemError,
 }
 
 impl std::fmt::Display for Error {
@@ -13,6 +16,7 @@ impl std::fmt::Display for Error {
             Error::IoError(e) => write!(f, "Io error: {}", e),
             Error::SplitNextError => write!(f, "Split next error"),
             Error::PidNotFound => write!(f, "Pid not found"),
+            Error::ReadMemError => write!(f, "Read mem error"),
         }
     }
 }

@@ -16,10 +16,10 @@ int main(void) {
 
   i = 0;
 
-  printf("%lu",sizeof(i));
+
 
   while (1) {
-    printf("[%lu] \n %s (%p) \n %s (%p) \n %s (%p) \n %s (%p)\n", i, a, (void *)a,
+    printf("[%lu] %p \n %s (%p) \n %s (%p) \n %s (%p) \n %s (%p)\n",i, &i, a, (void *)a,
            b, (void *)b, c, (void *)c, d, (void *)d);
     sleep(1);
     i++;

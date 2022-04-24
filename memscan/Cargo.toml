@@ -8,4 +8,8 @@ edition = "2021"
 [dependencies]
 memchr = { version = "2", default-features = false }
 
-# libc = "0.2.124"
+[profile.release]
+#lto = true
+#codegen-units = 1
+#panic = "abort"
+#strip = true

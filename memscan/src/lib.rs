@@ -2,14 +2,17 @@ use std::{
     collections::{HashMap, HashSet},
     fs::{self, File, OpenOptions},
     io::{Read, Seek, SeekFrom, Write},
+    os::unix::fs::FileExt,
     path::Path,
 };
 
 use memchr::memmem::find_iter;
 
 pub mod error;
+mod libc;
 pub mod maps;
 
+use crate::libc::pvr as process_vm_readv;
 use crate::{
     error::{Error, Result},
     maps::{parse_proc_maps, MapRange},
@@ -18,6 +21,7 @@ use crate::{
 pub struct MemScan {
     mem_file: File,
     maps_file: File,
+    pid: i32,
 }
 
 impl MemScan {
@@ -32,58 +36,51 @@ impl MemScan {
         Self {
             mem_file,
             maps_file,
+            pid,
         }
     }
 
-    pub fn read_bytes(&mut self, address: usize, size: usize) -> Result<Vec<u8>> {
-        self.mem_file.seek(SeekFrom::Start(address as u64))?;
-        let mut buffer = vec![0; size];
-        self.mem_file.read_exact(&mut buffer)?;
-        Ok(buffer)
+    pub fn read_bytes(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
+        // if size > 1024*1024*30{}
+        let mut buf = vec![0; size];
+        process_vm_readv(self.pid, addr, &mut buf)?;
+        Ok(buf)
     }
 
-    pub fn write_bytes(&mut self, address: usize, payload: &[u8]) -> Result<usize> {
-        self.mem_file.seek(SeekFrom::Start(address as u64))?;
-        self.mem_file.write_all(payload)?;
+    pub fn write_bytes(&self, addr: usize, payload: &[u8]) -> Result<usize> {
+        self.mem_file.write_at(payload, addr as u64)?;
         Ok(payload.len())
     }
 
     fn readmaps_all(&mut self) -> Result<Vec<MapRange>> {
         let mut contents = String::new();
+        // TODO read_at_to_string
         self.maps_file.read_to_string(&mut contents)?;
+        self.maps_file.rewind();
         Ok(parse_proc_maps(&contents)?
             .into_iter()
-            .filter(|m| m.is_read() && m.is_write())
+            .filter(|m| m.is_read() )
             .collect::<Vec<MapRange>>())
     }
 
-    pub fn search_all_mem(&mut self, v: &[u8]) -> Result<HashSet<(usize, Vec<u8>)>> {
-        //        let mut hs: HashMap<usize, Vec<u8>> = std::collections::HashMap::new();
+    // TODO 简化代码 分多种类型 ca cheap
+    pub fn search_all_mem(&mut self, v: &[u8]) -> Result<Vec<usize>> {
+        let mut vv = Vec::new();
+        for f in self.readmaps_all()?.iter() {
+            //dbg!(f.end()-f.start());
+               let a =  find_iter(&self.read_bytes(f.start(), f.end() - f.start())?, v)
+                    .map(|m| m + f.start())
+                    .collect::<Vec<usize>>();
 
-        let mut hs: HashSet<(usize, Vec<u8>)> = HashSet::new();
-
-        self.readmaps_all()?.iter().try_for_each(|f| {
-            let vl = find_iter(&self.read_bytes(f.start(), f.end() - f.start()).ok()?, v)
-                .map(|m| m + f.start())
-                .collect::<Vec<usize>>();
-            if !vl.is_empty() {
-                vl.iter().for_each(|a| {
-                    hs.insert((
-                        *a,
-                        self.read_bytes(*vl.iter().next().unwrap(), v.len())
-                            .unwrap(),
-                    ));
-                });
-
-                return None;
+            for q in a {
+                vv.push(q);
             }
-            Some(())
-        });
-
-        Ok(hs)
+        }
+        Ok(vv)
     }
 }
 
+// TODO 改善性能
 pub fn get_pid_by_name(name: &str) -> Result<i32> {
     let mut pid: i32 = -1;
     for process in fs::read_dir("/proc")? {
@@ -103,8 +100,4 @@ pub fn get_pid_by_name(name: &str) -> Result<i32> {
     }
 
     Ok(pid)
-}
-
-extern "C" {
-    pub fn mprotect(addr: *mut core::ffi::c_void, len: usize, prot: i32) -> i32;
 }
