@@ -1,3 +1,7 @@
+#![feature(is_some_with)]
+
+use std::io::{Seek, SeekFrom};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fs::File, io::Read, path::Path};
 
 use memchr::memmem::find_iter;
@@ -37,14 +41,20 @@ impl MemScan {
         file.read_to_string(&mut contents)?;
         Ok(parse_proc_maps(&contents)?
             .into_iter()
-            .filter(|m| m.is_read())
+            .filter(|m| m.is_read() && m.pathname() != "[vvar]")
             .collect::<Vec<MapRange>>())
     }
 
     // 读取内存
     pub fn read_bytes(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
+        // let mut buf = vec![0; size];
+        // process_vm_readv(self.pid, addr, &mut buf)?;
+
+        let mut file = File::open(&Path::new(&format!("/proc/{}/mem", self.pid)))?;
+        file.seek(SeekFrom::Start(addr as u64))?;
         let mut buf = vec![0; size];
-        process_vm_readv(self.pid, addr, &mut buf)?;
+        file.read_exact(&mut buf)?;
+
         Ok(buf)
     }
 
@@ -56,16 +66,33 @@ impl MemScan {
 
     // 搜索全部带有可读权限的内存
     pub fn search_all(&mut self, v: &[u8]) -> Result<()> {
-        for f in self.readmaps_all()?.iter() {
-            let vl = find_iter(&self.read_bytes(f.start(), f.end() - f.start())?, v)
-                .map(|m| m + f.start())
-                .collect::<Vec<usize>>();
-            if !vl.is_empty() {
-                for i in vl {
-                    self.addr_cache.push(i)
-                }
-            }
-        }
+        let start = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        self.addr_cache = self
+            .readmaps_all()?
+            .iter()
+            .map(|m| -> Result<Vec<usize>> {
+                Ok(
+                    find_iter(&self.read_bytes(m.start(), m.end() - m.start())?, v)
+                        .map(|u| u + m.start())
+                        .collect::<Vec<usize>>(),
+                )
+            })
+            .filter(|v| v.is_ok_and(|x| !x.is_empty()))
+            .collect::<Result<Vec<Vec<_>>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<usize>>();
+
+        let end = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        println!("len: {}  耗时: {}", self.addr_cache.len(), end - start);
         Ok(())
     }
 
@@ -77,12 +104,15 @@ impl MemScan {
 
     // 发生变化
     pub fn change_mem(&mut self) -> Result<()> {
+        self.addr_cache = self.addr_cache.iter().filter(|addr|
+           self.read_bytes(**addr,self.v.len()).unwrap() != self.v
+        ).copied().collect::<Vec<usize>>();
         Ok(())
     }
 
-    // 打印地址列表
+    // 打印地址列表 太多了 先打印个长度
     pub fn list(&self) {
-        dbg!(&self.addr_cache);
+        dbg!(&self.addr_cache.len());
     }
 
     // TODO 设置权限

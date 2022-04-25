@@ -29,7 +29,7 @@ pub fn start() -> Result<()> {
                     if input.len() < 2 {
                         println!("需要一个参数")
                     } else {
-                        let i = &input[1].parse::<i32>().unwrap().to_be_bytes();
+                        let i = &input[1].as_bytes();
                         app.search_all(i)?;
                         app.v = i.to_vec();
                         println!("搜索的值");
