@@ -1,0 +1,11 @@
+[target.aarch64-linux-android]
+image = "rustembedded/cross:aarch64-linux-android"
+
+[target.armv7-linux-androideabi]
+image = "rustembedded/cross:armv7-linux-androideabi"
+
+[target.armv7-unknown-linux-musleabihf]
+image = "rustembedded/cross:armv7-unknown-linux-musleabihf"
+
+[target.x86_64-unknown-linux-gnu]
+image = "rustembedded/cross:x86_64-unknown-linux-gnu"
