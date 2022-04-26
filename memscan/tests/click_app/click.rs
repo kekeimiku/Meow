@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     c.push(0);
 
     let app = app::App::default().with_scheme(app::Scheme::Gtk);
-    let mut wind = Window::default().with_size(200, 240).with_label("Test");
+    let mut wind = Window::default().with_size(200, 240).with_label("Click Game");
     let mut pack = Pack::default().with_size(120, 140).center_of(&wind);
     Frame::default().with_size(0, 40).with_label(
         "假装这是一个游戏，\n每点击一下 按钮 数字就会-1，\n 数字变成0的时候就会提示获胜",
