@@ -14,7 +14,7 @@ linux（包括android）版 cheat engine （支持图形界面，web和命令行
 	
 	`decode` arm64反汇编器
 
-	`src` 内存读写与模糊搜索
+	`memscan` 内存读写与模糊搜索
 	
 	`gui` 包含web gui tui
 
