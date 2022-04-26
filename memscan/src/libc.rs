@@ -75,3 +75,23 @@ pub fn pvw(pid: i32, addr: usize, buf: &[u8]) -> Result<()> {
         _ => Err(Error::SysCall(std::io::Error::last_os_error())),
     }
 }
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct WinSize {
+    pub ws_row: u16,
+    pub ws_col: u16,
+    pub ws_xpixel: u16,
+    pub ws_ypixel: u16,
+}
+
+extern "C" {
+    pub fn ioctl(fd: i32, request: u64, ...) -> i32;
+}
+
+pub fn get_termsize() -> WinSize {
+    let us = WinSize::default();
+    unsafe { ioctl(1, 0x5413, &us) };
+    println!("{:?}", us);
+    us
+}

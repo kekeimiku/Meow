@@ -3,7 +3,7 @@
 use std::io::{Seek, SeekFrom};
 use std::{fs::File, io::Read, path::Path};
 
-use indicatif::ProgressBar;
+use pbar::ProgressBar;
 use memchr::memmem::find_iter;
 
 pub mod error;
@@ -74,12 +74,12 @@ impl MemScan {
     // TODO 提供可选的类型，有时已经知道内存类型，不需要搜索全部。
     pub fn search_all(&mut self, v: &[u8]) -> Result<()> {
         self.readmaps_all()?;
-        let pb = ProgressBar::new(self.maps_cache.len() as u64);
+        let mut pb = ProgressBar::new(self.maps_cache.len().into());
         self.addr_cache = self
             .maps_cache
             .iter()
             .map(|m| -> Result<Vec<usize>> {
-                pb.inc(1);
+                pb.inc();
                 Ok(
                     find_iter(&self.read_bytes(m.start(), m.end() - m.start())?, v)
                         .map(|u| u + m.start())
@@ -113,12 +113,12 @@ impl MemScan {
     // 发生变化（包括变大或者变小）
     // TODO 第一次非常慢
     pub fn change_mem(&mut self) -> Result<()> {
-        let pb = ProgressBar::new(self.addr_cache.len() as u64);
+        let mut pb = ProgressBar::new(self.addr_cache.len().into());
         let tmp = self
             .addr_cache
             .iter()
             .filter(|addr| {
-                pb.inc(1);
+                pb.inc();
                 self.read_bytes(**addr, self.input.len()).unwrap() != self.input
             })
             .copied()
@@ -147,21 +147,21 @@ impl MemScan {
     // 打印地址列表 太多了 先打印个长度
     // TODO 分页展示每个地址的值，用于直接观察变化，每页显示10个，loop读取20个值，翻到第二页的时候开始读取第20-30个，以此类推
     pub fn addr_list(&mut self, num: usize) {
+            // self.addr_cache.iter().for_each(|a| {
+            //     println!("0x{:x}", a);
+            // });
+        if self.addr_cache.len() > num {
+            self.addr_cache[0..num].iter().for_each(|a| {
+                println!("0x{:x}", a);
+            });
+            println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
+        }
+
+        if self.addr_cache.len() < num {
             self.addr_cache.iter().for_each(|a| {
                 println!("0x{:x}", a);
             });
-        // if self.addr_cache.len() > num {
-        //     self.addr_cache[0..num].iter().for_each(|a| {
-        //         println!("0x{:x}", a);
-        //     });
-        //     println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
-        // }
-        //
-        // if self.addr_cache.len() < num {
-        //     self.addr_cache.iter().for_each(|a| {
-        //         println!("0x{:x}", a);
-        //     });
-        // }
+        }
     }
 
     // 打印maps列表 规则同上

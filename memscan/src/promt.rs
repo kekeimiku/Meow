@@ -85,7 +85,9 @@ pub fn start() -> Result<()> {
                 }
                 "list" => app.addr_list(input[1].parse::<usize>().unwrap()),
                 "exit" | "quit" => std::process::exit(0),
-
+                "help" => {
+                    println!("help");
+                }
                 _ => {}
             };
         }
