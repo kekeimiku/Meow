@@ -147,18 +147,21 @@ impl MemScan {
     // 打印地址列表 太多了 先打印个长度
     // TODO 分页展示每个地址的值，用于直接观察变化，每页显示10个，loop读取20个值，翻到第二页的时候开始读取第20-30个，以此类推
     pub fn addr_list(&mut self, num: usize) {
-        if self.addr_cache.len() > num {
-            self.addr_cache[0..num].iter().for_each(|a| {
-                println!("0x{:x}", a);
-            });
-            println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
-        }
-
-        if self.addr_cache.len() < num {
             self.addr_cache.iter().for_each(|a| {
                 println!("0x{:x}", a);
             });
-        }
+        // if self.addr_cache.len() > num {
+        //     self.addr_cache[0..num].iter().for_each(|a| {
+        //         println!("0x{:x}", a);
+        //     });
+        //     println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
+        // }
+        //
+        // if self.addr_cache.len() < num {
+        //     self.addr_cache.iter().for_each(|a| {
+        //         println!("0x{:x}", a);
+        //     });
+        // }
     }
 
     // 打印maps列表 规则同上

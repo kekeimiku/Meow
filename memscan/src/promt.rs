@@ -30,7 +30,7 @@ pub fn start() -> Result<()> {
                         println!("需要两个参数")
                     } else {
                         if input[1] == "int" {
-                            let i = &input[2].parse::<i32>().unwrap().to_be_bytes();
+                            let i = &input[2].parse::<i32>().unwrap().to_le_bytes();
                             app.search_all(i)?;
                             app.input = i.to_vec();
                             app.addr_list(10)
@@ -48,8 +48,9 @@ pub fn start() -> Result<()> {
                     if input.len() < 3 {
                         println!("需要两个参数 get address len")
                     } else {
+                        let i = usize::from_str_radix(&input[1].replace("0x", ""), 16).unwrap();
                         let v =
-                            app.read_bytes(input[1].parse::<usize>()?, input[2].parse::<usize>()?);
+                            app.read_bytes(i, input[2].parse::<usize>()?);
                         println!("读取的值 {:?}", v);
                     }
                 }
