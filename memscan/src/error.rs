@@ -1,7 +1,9 @@
+// TODO 重新写一下，，
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
+    SysCall(std::io::Error),
     SplitNextError,
     PidNotFound,
     ReadMemError,
@@ -15,6 +17,7 @@ impl std::fmt::Display for Error {
             Error::ParseIntError(e) => write!(f, "Parse error: {}", e),
             Error::IoError(e) => write!(f, "Io error: {}", e),
             Error::SplitNextError => write!(f, "Split next error"),
+            Error::SysCall(e) => write!(f, "Syscall Error: {}", e),
             Error::PidNotFound => write!(f, "Pid not found"),
             Error::ReadMemError => write!(f, "Read mem error"),
             Error::WriteMemError => write!(f, "Write mem error"),

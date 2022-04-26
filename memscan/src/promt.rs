@@ -27,13 +27,20 @@ pub fn start() -> Result<()> {
             match input[0] {
                 "find" => {
                     if input.len() < 2 {
-                        println!("需要一个参数")
+                        println!("需要两个参数")
                     } else {
-                        let i = &input[1].as_bytes();
-                        app.search_all(i)?;
-                        app.v = i.to_vec();
-                        println!("搜索的值");
-                        app.list()
+                        if input[1] == "int" {
+                            let i = &input[2].parse::<i32>().unwrap().to_be_bytes();
+                            app.search_all(i)?;
+                            app.input = i.to_vec();
+                            app.addr_list(10)
+                        }
+                        if input[1] == "str" {
+                            let i = &input[2].as_bytes();
+                            app.search_all(i)?;
+                            app.input = i.to_vec();
+                            app.addr_list(10)
+                        }
                     }
                 }
 
@@ -51,16 +58,16 @@ pub fn start() -> Result<()> {
                     if input.len() < 3 {
                         println!("需要两个参数")
                     } else {
-                        let o = app.write_bytes(input[1].parse::<usize>()?, input[2].as_bytes());
-                        println!("写入返回值 {:?}", o);
+                        let _ = app.write_bytes(
+                            usize::from_str_radix(&input[1].replace("0x", ""), 16).unwrap(),
+                            input[2].as_bytes(),
+                        );
                     }
                 }
                 "<" => {
-                    // dbg!(&app.addr_cache);
-                    dbg!(&app.v);
                     app.change_mem().unwrap();
-                    println!("变小的值 && 发生了变化");
-                    app.list()
+                    println!("有变化");
+                    app.addr_list(10)
                 }
                 ">" => {
                     // println!("{:?}",&app.addr_cache);
@@ -74,11 +81,8 @@ pub fn start() -> Result<()> {
                 }
                 "reset" => {
                     println!("重新搜索");
-                    let _ = app.addr_cache.clear();
                 }
-                "list" => {
-                    dbg!(&app.addr_cache);
-                }
+                "list" => app.addr_list(input[1].parse::<usize>().unwrap()),
                 "exit" | "quit" => std::process::exit(0),
 
                 _ => {}

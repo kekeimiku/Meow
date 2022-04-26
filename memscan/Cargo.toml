@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 memchr = { version = "2", default-features = false }
+indicatif = {version =  "0.16.2" ,default-features = false}
 
 [profile.release]
-#lto = true
-#codegen-units = 1
-#panic = "abort"
-#strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
