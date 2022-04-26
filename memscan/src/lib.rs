@@ -74,7 +74,7 @@ impl MemScan {
     // TODO 提供可选的类型，有时已经知道内存类型，不需要搜索全部。
     pub fn search_all(&mut self, v: &[u8]) -> Result<()> {
         self.readmaps_all()?;
-        let mut pb = ProgressBar::new(self.maps_cache.len().into());
+        let mut pb = ProgressBar::new(self.maps_cache.len());
         self.addr_cache = self
             .maps_cache
             .iter()
@@ -110,10 +110,13 @@ impl MemScan {
     // 打印冻结列表
     pub fn lock_list(&self) {}
 
+    // 获取指针
+    pub fn get_ptr(&self){}
+
     // 发生变化（包括变大或者变小）
     // TODO 第一次非常慢
     pub fn change_mem(&mut self) -> Result<()> {
-        let mut pb = ProgressBar::new(self.addr_cache.len().into());
+        let mut pb = ProgressBar::new(self.addr_cache.len());
         let tmp = self
             .addr_cache
             .iter()
@@ -135,10 +138,12 @@ impl MemScan {
 
     pub fn more_mem(&self) {}
 
-    // 清空缓存
+    // 清空所有缓存，重新开始
     pub fn update(&mut self) {
         self.maps_cache.clear();
         self.addr_cache.clear();
+        self.lock_cache.clear();
+        self.save_cache.clear();
     }
 
     // 清空缓存 刷新结果

@@ -1,12 +1,14 @@
+use std::cmp::Ordering;
+
 pub struct ProgressBar {
     progress: usize,
     count: usize,
-    pub length: usize,
-    pub start_char: char,
-    pub end_char: char,
-    pub progress_char: char,
-    pub tip_char: char,
-    pub empty_char: char,
+    length: usize,
+    start_char: char,
+    end_char: char,
+    progress_char: char,
+    tip_char: char,
+    empty_char: char,
 }
 
 #[repr(C)]
@@ -32,7 +34,7 @@ impl ProgressBar {
     pub fn new(count: usize) -> ProgressBar {
         ProgressBar {
             progress: 0,
-            count: count,
+            count,
             length: get_termsize().ws_col as usize - 20, // TODO 减去的宽度不应该固定
             start_char: '[',
             end_char: ']',
@@ -47,12 +49,10 @@ impl ProgressBar {
         let num_progress = (self.progress * self.length) / self.count;
         let mut output = self.start_char.to_string();
         for i in 0..self.length {
-            if i < num_progress {
-                output = format!("{}{}", output, self.progress_char);
-            } else if i == num_progress {
-                output = format!("{}{}", output, self.tip_char);
-            } else {
-                output = format!("{}{}", output, self.empty_char);
+            match i.cmp(&num_progress) {
+                Ordering::Greater => output = format!("{}{}", output, self.empty_char),
+                Ordering::Less => output = format!("{}{}", output, self.progress_char),
+                Ordering::Equal => output = format!("{}{}", output, self.tip_char),
             }
         }
         output = format!(
