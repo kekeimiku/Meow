@@ -60,7 +60,7 @@ pub fn start() -> Result<()> {
                     } else {
                         let _ = app.write_bytes(
                             usize::from_str_radix(&input[1].replace("0x", ""), 16).unwrap(),
-                            input[2].as_bytes(),
+                            &input[2].parse::<i32>().unwrap().to_le_bytes(),
                         );
                     }
                 }

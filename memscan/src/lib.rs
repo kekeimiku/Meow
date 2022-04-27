@@ -1,6 +1,3 @@
-#![feature(is_some_with)]
-
-
 use std::os::unix::fs::FileExt;
 use std::{fs::File, io::Read, path::Path};
 
@@ -47,8 +44,14 @@ impl MemScan {
         file.read_to_string(&mut contents)?;
         self.maps_cache = parse_proc_maps(&contents)?
             .into_iter()
-            .filter(|m| m.is_read() && m.pathname() != "[vvar]" && m.end() - m.start() > 0)
+            .filter(|m| {
+                m.end() - m.start() > 0 && (m.pathname() == "[heap]" || m.pathname() == "[stack]")
+                    || (m.pathname().is_empty() && m.is_read() && m.is_write())
+                    || (m.pathname().is_empty() && m.is_read() && m.is_write() && m.is_exec())
+            })
             .collect::<Vec<MapRange>>();
+
+        // dbg!(&self.maps_cache.len());
         Ok(())
     }
 
@@ -59,9 +62,6 @@ impl MemScan {
         let mut buf = vec![0; size];
         let file = File::open(&Path::new(&format!("/proc/{}/mem", self.pid)))?;
         file.read_at(&mut buf, addr as u64)?;
-        // file.seek(SeekFrom::Start(addr as u64))?;
-        // file.read_exact(&mut buf)?;
-        // process_vm_readv(self.pid, addr, &mut buf)?;
         Ok(buf)
     }
 
@@ -77,6 +77,7 @@ impl MemScan {
     pub fn search_all(&mut self, v: &[u8]) -> Result<()> {
         self.readmaps_all()?;
         let mut pb = ProgressBar::new(self.maps_cache.len());
+
         self.addr_cache = self
             .maps_cache
             .iter()
@@ -152,21 +153,18 @@ impl MemScan {
     // 打印地址列表 太多了 先打印个长度
     // TODO 分页展示每个地址的值，用于直接观察变化，每页显示10个，loop读取20个值，翻到第二页的时候开始读取第20-30个，以此类推
     pub fn addr_list(&mut self, num: usize) {
-        // self.addr_cache.iter().for_each(|a| {
-        //     println!("0x{:x}", a);
-        // });
         println!();
 
         if self.addr_cache.len() > num {
             self.addr_cache[0..num].iter().for_each(|a| {
-                println!("{:?}", a);
+                println!("0x{:x}", a);
             });
             println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
         }
 
         if self.addr_cache.len() < num {
             self.addr_cache.iter().for_each(|a| {
-                println!("{:?}", a);
+                println!("0x{:x}", a);
             });
         }
     }
