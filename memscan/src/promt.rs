@@ -49,8 +49,7 @@ pub fn start() -> Result<()> {
                         println!("需要两个参数 get address len")
                     } else {
                         let i = usize::from_str_radix(&input[1].replace("0x", ""), 16).unwrap();
-                        let v =
-                            app.read_bytes(i, input[2].parse::<usize>()?);
+                        let v = app.read_bytes(i, input[2].parse::<usize>()?);
                         println!("读取的值 {:?}", v);
                     }
                 }
@@ -83,7 +82,7 @@ pub fn start() -> Result<()> {
                 "reset" => {
                     println!("重新搜索");
                 }
-                "list" => app.addr_list(input[1].parse::<usize>().unwrap()),
+                "list" => app.addr_list(10),
                 "exit" | "quit" => std::process::exit(0),
                 "help" => {
                     println!("help");

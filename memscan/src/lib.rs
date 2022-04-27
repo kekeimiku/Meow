@@ -1,10 +1,11 @@
 #![feature(is_some_with)]
 
-use std::io::{Seek, SeekFrom};
+
+use std::os::unix::fs::FileExt;
 use std::{fs::File, io::Read, path::Path};
 
-use pbar::ProgressBar;
 use memchr::memmem::find_iter;
+use pbar::ProgressBar;
 
 pub mod error;
 pub mod libc;
@@ -46,19 +47,20 @@ impl MemScan {
         file.read_to_string(&mut contents)?;
         self.maps_cache = parse_proc_maps(&contents)?
             .into_iter()
-            .filter(|m| m.is_read() && m.pathname() != "[vvar]")
+            .filter(|m| m.is_read() && m.pathname() != "[vvar]" && m.end() - m.start() > 0)
             .collect::<Vec<MapRange>>();
-
         Ok(())
     }
 
     // 读取内存
+    #[inline]
     pub fn read_bytes(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
         // TODO 如果失败了用其它方式读取
         let mut buf = vec![0; size];
-        let mut file = File::open(&Path::new(&format!("/proc/{}/mem", self.pid)))?;
-        file.seek(SeekFrom::Start(addr as u64))?;
-        file.read_exact(&mut buf)?;
+        let file = File::open(&Path::new(&format!("/proc/{}/mem", self.pid)))?;
+        file.read_at(&mut buf, addr as u64)?;
+        // file.seek(SeekFrom::Start(addr as u64))?;
+        // file.read_exact(&mut buf)?;
         // process_vm_readv(self.pid, addr, &mut buf)?;
         Ok(buf)
     }
@@ -78,20 +80,15 @@ impl MemScan {
         self.addr_cache = self
             .maps_cache
             .iter()
-            .map(|m| -> Result<Vec<usize>> {
+            .flat_map(|m| -> Vec<usize> {
                 pb.inc();
-                Ok(
-                    find_iter(&self.read_bytes(m.start(), m.end() - m.start())?, v)
-                        .map(|u| u + m.start())
-                        .collect::<Vec<usize>>(),
-                )
+                find_iter(&self.read_bytes(m.start(), m.end() - m.start()).unwrap(), v)
+                    .map(|u| u + m.start())
+                    // TODO 这个collect不知道怎么省掉
+                    .collect()
             })
-            // TODO 过滤掉空的vec应该可以在上面做，然后性能应该会好一点？
-            .filter(|v| v.is_ok_and(|x| !x.is_empty()))
-            .collect::<Result<Vec<Vec<_>>>>()?
-            .into_iter()
-            .flatten()
-            .collect::<Vec<usize>>();
+            .collect();
+
         Ok(())
     }
 
@@ -111,24 +108,27 @@ impl MemScan {
     pub fn lock_list(&self) {}
 
     // 获取指针
-    pub fn get_ptr(&self){}
+    pub fn get_ptr(&self) {}
+
+    // 批量写入
+    pub fn write_all(&self) {}
 
     // 发生变化（包括变大或者变小）
     // TODO 第一次非常慢
     pub fn change_mem(&mut self) -> Result<()> {
-        let mut pb = ProgressBar::new(self.addr_cache.len());
-        let tmp = self
-            .addr_cache
-            .iter()
-            .filter(|addr| {
-                pb.inc();
-                self.read_bytes(**addr, self.input.len()).unwrap() != self.input
-            })
-            .copied()
-            .collect::<Vec<usize>>();
-
-        self.addr_cache.clear();
-        self.addr_cache = tmp;
+        // let mut pb = ProgressBar::new(self.addr_cache.len());
+        // let tmp = self
+        //     .addr_cache
+        //     .iter()
+        //     .filter(|addr| {
+        //         pb.inc();
+        //         self.read_bytes(**addr, self.input.len()).unwrap() != self.input
+        //     })
+        //     .copied()
+        //     .collect::<Vec<usize>>();
+        //
+        // self.addr_cache.clear();
+        // self.addr_cache = tmp;
         Ok(())
     }
 
@@ -152,19 +152,21 @@ impl MemScan {
     // 打印地址列表 太多了 先打印个长度
     // TODO 分页展示每个地址的值，用于直接观察变化，每页显示10个，loop读取20个值，翻到第二页的时候开始读取第20-30个，以此类推
     pub fn addr_list(&mut self, num: usize) {
-            // self.addr_cache.iter().for_each(|a| {
-            //     println!("0x{:x}", a);
-            // });
+        // self.addr_cache.iter().for_each(|a| {
+        //     println!("0x{:x}", a);
+        // });
+        println!();
+
         if self.addr_cache.len() > num {
             self.addr_cache[0..num].iter().for_each(|a| {
-                println!("0x{:x}", a);
+                println!("{:?}", a);
             });
             println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
         }
 
         if self.addr_cache.len() < num {
             self.addr_cache.iter().for_each(|a| {
-                println!("0x{:x}", a);
+                println!("{:?}", a);
             });
         }
     }

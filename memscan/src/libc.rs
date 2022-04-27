@@ -28,7 +28,7 @@ pub fn mpt(addr: usize, len: usize, prot: i32) -> Result<()> {
 }
 
 extern "C" {
-    pub fn process_vm_readv(
+    fn process_vm_readv(
         pid: i32,
         local_iov: *const Iovec,
         liovcnt: u64,
@@ -36,7 +36,7 @@ extern "C" {
         riovcnt: u64,
         flags: u64,
     ) -> isize;
-    pub fn process_vm_writev(
+    fn process_vm_writev(
         pid: i32,
         local_iov: *const Iovec,
         liovcnt: u64,
