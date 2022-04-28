@@ -30,7 +30,7 @@ pub fn start() -> Result<()> {
                         println!("需要两个参数")
                     } else {
                         if input[1] == "int" {
-                            let i = &input[2].parse::<i32>().unwrap().to_le_bytes();
+                            let i = &input[2].parse::<u8>().unwrap().to_le_bytes();
                             app.search_all(i)?;
                             app.input = i.to_vec();
                             app.addr_list(10)
@@ -81,6 +81,7 @@ pub fn start() -> Result<()> {
                 }
                 "reset" => {
                     println!("重新搜索");
+                    app.reset()
                 }
                 "list" => app.addr_list(10),
                 "exit" | "quit" => std::process::exit(0),

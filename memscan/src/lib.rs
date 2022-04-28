@@ -1,19 +1,23 @@
 use std::os::unix::fs::FileExt;
 use std::{fs::File, io::Read, path::Path};
+use indicatif::ProgressBar;
 
 use memchr::memmem::find_iter;
-use pbar::ProgressBar;
 
 pub mod error;
 pub mod libc;
 pub mod maps;
-pub mod promt;
+// pub mod promt;
+// pub mod pbar;
+pub mod cmd;
 
 use crate::{
     error::{Error, Result},
     libc::pvw as process_vm_writev,
     maps::{parse_proc_maps, MapRange},
 };
+use crate::libc::pvr;
+// use crate::pbar::ProgressBar;
 
 #[derive(Debug)]
 pub struct MemScan {
@@ -23,6 +27,7 @@ pub struct MemScan {
     pub input: Vec<u8>,            //输入的值，用来读取那个
     pub lock_cache: Vec<u8>,       //冻结的地址列表
     pub save_cache: Vec<u8>,       //主动保存的地址列表
+    pub mem_file: File,
 }
 
 impl MemScan {
@@ -34,6 +39,7 @@ impl MemScan {
             input: vec![],
             lock_cache: vec![],
             save_cache: vec![],
+            mem_file: File::open(&Path::new(&format!("/proc/{}/mem", pid))).unwrap()
         }
     }
 
@@ -55,38 +61,44 @@ impl MemScan {
         Ok(())
     }
 
-    // 读取内存
-    #[inline]
-    pub fn read_bytes(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
-        // TODO 如果失败了用其它方式读取
-        let mut buf = vec![0; size];
-        let file = File::open(&Path::new(&format!("/proc/{}/mem", self.pid)))?;
-        file.read_at(&mut buf, addr as u64)?;
-        Ok(buf)
-    }
-
     // 写入
+    #[inline(always)]
     pub fn write_bytes(&self, addr: usize, payload: &[u8]) -> Result<usize> {
         // TODO 如果失败了用其它方式写入
         process_vm_writev(self.pid, addr, payload)?;
         Ok(payload.len())
     }
 
-    // 搜索全部带有可读权限的内存
+    // 读取内存
+    #[inline(always)]
+    pub fn read_bytes(&self, addr: usize, size: usize) -> Vec<u8> {
+        // TODO 如果失败了用其它方式读取
+        let mut buf = vec![0; size];
+        // self.mem_file.read_at(&mut buf, addr as u64)?;
+        match pvr(self.pid,addr,&mut buf){
+            Ok(_)=>{},
+            Err(_)=>{
+                self.mem_file.read_at(&mut buf, addr as u64).unwrap();
+            }
+        };
+
+        buf
+    }
+
+    // 搜索内存
     // TODO 提供可选的类型，有时已经知道内存类型，不需要搜索全部。
     pub fn search_all(&mut self, v: &[u8]) -> Result<()> {
         self.readmaps_all()?;
-        let mut pb = ProgressBar::new(self.maps_cache.len());
+
+        let pb = ProgressBar::new(self.maps_cache.len() as u64);
 
         self.addr_cache = self
             .maps_cache
             .iter()
             .flat_map(|m| -> Vec<usize> {
-                pb.inc();
-                find_iter(&self.read_bytes(m.start(), m.end() - m.start()).unwrap(), v)
-                    .map(|u| u + m.start())
-                    // TODO 这个collect不知道怎么省掉
-                    .collect()
+                pb.inc(1);
+                find_iter(&self.read_bytes(m.start(), m.end() - m.start()), v)
+                    .map(|u| u + m.start()).collect()
             })
             .collect();
 
@@ -114,25 +126,6 @@ impl MemScan {
     // 批量写入
     pub fn write_all(&self) {}
 
-    // 发生变化（包括变大或者变小）
-    // TODO 第一次非常慢
-    pub fn change_mem(&mut self) -> Result<()> {
-        // let mut pb = ProgressBar::new(self.addr_cache.len());
-        // let tmp = self
-        //     .addr_cache
-        //     .iter()
-        //     .filter(|addr| {
-        //         pb.inc();
-        //         self.read_bytes(**addr, self.input.len()).unwrap() != self.input
-        //     })
-        //     .copied()
-        //     .collect::<Vec<usize>>();
-        //
-        // self.addr_cache.clear();
-        // self.addr_cache = tmp;
-        Ok(())
-    }
-
     pub fn less_mem(&self, _v: &[u8]) -> Result<()> {
         Ok(())
     }
@@ -140,11 +133,16 @@ impl MemScan {
     pub fn more_mem(&self) {}
 
     // 清空所有缓存，重新开始
-    pub fn update(&mut self) {
+    pub fn reset(&mut self) {
         self.maps_cache.clear();
         self.addr_cache.clear();
         self.lock_cache.clear();
         self.save_cache.clear();
+        self.maps_cache.shrink_to_fit();
+        self.addr_cache.shrink_to_fit();
+        self.lock_cache.shrink_to_fit();
+        self.save_cache.shrink_to_fit();
+
     }
 
     // 清空缓存 刷新结果
