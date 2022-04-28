@@ -9,10 +9,11 @@ edition = "2021"
 memchr = { version = "2", default-features = false }
 #rayon = "1.5.2"
 indicatif = "0.16.2"
+dashmap = "5.2.0"
 
 [profile.release]
-debug = true
+#debug = true
 lto = true
 codegen-units = 1
-#panic = "abort"
-#strip = true
+panic = "abort"
+strip = true

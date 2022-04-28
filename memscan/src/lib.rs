@@ -1,6 +1,7 @@
+use indicatif::ProgressBar;
 use std::os::unix::fs::FileExt;
 use std::{fs::File, io::Read, path::Path};
-use indicatif::ProgressBar;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use memchr::memmem::find_iter;
 
@@ -11,12 +12,12 @@ pub mod maps;
 // pub mod pbar;
 pub mod cmd;
 
+use crate::libc::pvr;
 use crate::{
     error::{Error, Result},
     libc::pvw as process_vm_writev,
     maps::{parse_proc_maps, MapRange},
 };
-use crate::libc::pvr;
 // use crate::pbar::ProgressBar;
 
 #[derive(Debug)]
@@ -39,7 +40,7 @@ impl MemScan {
             input: vec![],
             lock_cache: vec![],
             save_cache: vec![],
-            mem_file: File::open(&Path::new(&format!("/proc/{}/mem", pid))).unwrap()
+            mem_file: File::open(&Path::new(&format!("/proc/{}/mem", pid))).unwrap(),
         }
     }
 
@@ -75,10 +76,15 @@ impl MemScan {
         // TODO 如果失败了用其它方式读取
         let mut buf = vec![0; size];
         // self.mem_file.read_at(&mut buf, addr as u64)?;
-        match pvr(self.pid,addr,&mut buf){
-            Ok(_)=>{},
-            Err(_)=>{
-                self.mem_file.read_at(&mut buf, addr as u64).unwrap();
+        match pvr(self.pid, addr, &mut buf) {
+            Ok(_) => {}
+            Err(_) => {
+                match self.mem_file.read_at(&mut buf, addr as u64) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        println!("err read_at")
+                    }
+                };
             }
         };
 
@@ -89,9 +95,7 @@ impl MemScan {
     // TODO 提供可选的类型，有时已经知道内存类型，不需要搜索全部。
     pub fn search_all(&mut self, v: &[u8]) -> Result<()> {
         self.readmaps_all()?;
-
         let pb = ProgressBar::new(self.maps_cache.len() as u64);
-
         self.addr_cache = self
             .maps_cache
             .iter()
@@ -101,7 +105,23 @@ impl MemScan {
                     .map(|u| u + m.start()).collect()
             })
             .collect();
+        Ok(())
+    }
 
+    // 查找发生变化的值
+    pub fn change_mem(&mut self) -> Result<()> {
+        println!(
+            "长度长度长度长度长度长度长度长度长度长度{}",
+            self.addr_cache.len()
+        );
+        println!("开始查找变化");
+
+        let mut tmp = self.addr_cache.clone();
+        self.addr_cache.clear();
+        self.addr_cache = tmp
+            .into_iter()
+            .filter(|addr| self.read_bytes(*addr, self.input.len()) < self.input)
+            .collect();
         Ok(())
     }
 
@@ -142,7 +162,6 @@ impl MemScan {
         self.addr_cache.shrink_to_fit();
         self.lock_cache.shrink_to_fit();
         self.save_cache.shrink_to_fit();
-
     }
 
     // 清空缓存 刷新结果

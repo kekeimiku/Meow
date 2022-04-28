@@ -1,5 +1,5 @@
-use std::io::Write;
 use crate::Result;
+use std::io::Write;
 
 struct ReadLine {
     cmd: Cmd,
@@ -7,15 +7,12 @@ struct ReadLine {
 }
 
 impl ReadLine {
-    pub fn new(c:String)->Self{
-        Self{
-            cmd:Cmd::FIND,
-            prompt:c,
+    pub fn new(c: String) -> Self {
+        Self {
+            cmd: Cmd::FIND,
+            prompt: c,
         }
     }
-
-
-
 }
 
 fn prompt(name: &str) -> Result<Vec<String>> {
@@ -30,11 +27,9 @@ fn prompt(name: &str) -> Result<Vec<String>> {
         .collect())
 }
 
-enum Cmd{
+enum Cmd {
     FIND,
-    SET
+    SET,
 }
 
-impl Cmd{
-
-}
+impl Cmd {}
