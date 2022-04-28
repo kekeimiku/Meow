@@ -8,8 +8,6 @@ edition = "2021"
 [dependencies]
 memchr = { version = "2", default-features = false }
 #rayon = "1.5.2"
-indicatif = "0.16.2"
-dashmap = "5.2.0"
 
 [profile.release]
 #debug = true

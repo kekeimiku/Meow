@@ -1,7 +1,6 @@
-use indicatif::ProgressBar;
 use std::os::unix::fs::FileExt;
+
 use std::{fs::File, io::Read, path::Path};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use memchr::memmem::find_iter;
 
@@ -95,14 +94,13 @@ impl MemScan {
     // TODO 提供可选的类型，有时已经知道内存类型，不需要搜索全部。
     pub fn search_all(&mut self, v: &[u8]) -> Result<()> {
         self.readmaps_all()?;
-        let pb = ProgressBar::new(self.maps_cache.len() as u64);
         self.addr_cache = self
             .maps_cache
             .iter()
             .flat_map(|m| -> Vec<usize> {
-                pb.inc(1);
                 find_iter(&self.read_bytes(m.start(), m.end() - m.start()), v)
-                    .map(|u| u + m.start()).collect()
+                    .map(|u| u + m.start())
+                    .collect()
             })
             .collect();
         Ok(())
@@ -116,7 +114,7 @@ impl MemScan {
         );
         println!("开始查找变化");
 
-        let mut tmp = self.addr_cache.clone();
+        let tmp = self.addr_cache.clone();
         self.addr_cache.clear();
         self.addr_cache = tmp
             .into_iter()

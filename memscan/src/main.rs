@@ -1,5 +1,5 @@
-use std::time::{SystemTime, UNIX_EPOCH};
 use memscan::MemScan;
+use std::time::{SystemTime, UNIX_EPOCH};
 // use memscan::promt::start;
 
 fn main() {
