@@ -1,10 +1,14 @@
-use memscan::MemScan;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use memscan::scan::MemScan;
 // use memscan::promt::start;
 
 fn main() {
-    //let pid = std::env::args().nth(1).unwrap().parse::<i32>().unwrap();
-    let mut app = MemScan::new(1025);
+    main1();
+}
+
+fn main1() {
+    let mut app = MemScan::new(49277).unwrap();
     let input = &1_u8.to_le_bytes();
     let start = SystemTime::now()
         .duration_since(UNIX_EPOCH)

@@ -1,4 +1,9 @@
-use crate::error::{Error, Result};
+use std::{fs::File, io::Read, path::Path};
+
+use crate::{
+    error::{Error, Result},
+    scan::MemScan,
+};
 
 #[derive(Debug)]
 pub struct MapRange {
@@ -62,4 +67,49 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<MapRange>> {
         });
     }
     Ok(vec)
+}
+
+impl MemScan {
+    // 读取maps中列出的所有可读的行地址 除了 [vvar]
+    pub fn readmaps_3(&mut self) -> Result<()> {
+        let mut file = File::open(&Path::new(&format!("/proc/{}/maps", self.pid)))?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        self.maps_cache = parse_proc_maps(&contents)?
+            .into_iter()
+            .filter(|m| m.pathname() != "[vvar]")
+            .collect::<Vec<MapRange>>();
+        Ok(())
+    }
+
+    // heap stack rw rwx pathname isempty
+    pub fn readmaps_lv2(&mut self) -> Result<()> {
+        let mut file = File::open(&Path::new(&format!("/proc/{}/maps", self.pid)))?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        self.maps_cache = parse_proc_maps(&contents)?
+            .into_iter()
+            .filter(|m| {
+                m.end() - m.start() > 0 && (m.pathname() == "[heap]" || m.pathname() == "[stack]")
+                    || (m.pathname().is_empty() && m.is_read() && m.is_write())
+                    || (m.pathname().is_empty() && m.is_read() && m.is_write() && m.is_exec())
+            })
+            .collect::<Vec<MapRange>>();
+        Ok(())
+    }
+
+    pub fn readmaps_lv1(&mut self) -> Result<()> {
+        let mut file = File::open(&Path::new(&format!("/proc/{}/maps", self.pid)))?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        self.maps_cache = parse_proc_maps(&contents)?
+            .into_iter()
+            .filter(|m| {
+                m.end() - m.start() > 0 && (m.pathname() == "[heap]" || m.pathname() == "[stack]")
+                    || (m.pathname().is_empty() && m.is_read() && m.is_write())
+                    || (m.pathname().is_empty() && m.is_read() && m.is_write() && m.is_exec())
+            })
+            .collect::<Vec<MapRange>>();
+        Ok(())
+    }
 }

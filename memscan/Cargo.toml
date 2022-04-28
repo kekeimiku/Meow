@@ -10,7 +10,7 @@ memchr = { version = "2", default-features = false }
 #rayon = "1.5.2"
 
 [profile.release]
-#debug = true
+# debug = true
 lto = true
 codegen-units = 1
 panic = "abort"
