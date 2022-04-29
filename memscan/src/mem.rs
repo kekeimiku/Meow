@@ -1,7 +1,7 @@
 use std::os::unix::prelude::FileExt;
 
 use crate::error::Result;
-use crate::libc::pvr as process_vm_readv;
+
 use crate::libc::pvw as process_vm_writev;
 use crate::scan::MemScan;
 
@@ -18,11 +18,14 @@ impl MemScan {
     #[inline(always)]
     pub fn read_bytes(&self, addr: usize, size: usize) -> Vec<u8> {
         let mut buf = vec![0; size];
-        if let Err(_) = process_vm_readv(self.pid, addr, &mut buf) {
-            if let Err(err) = self.mem_file.read_at(&mut buf, addr as u64) {
-                eprintln!("读取出错 :{} , Error: {}", addr, err)
-            };
+        if let Err(err) = self.mem_file.read_at(&mut buf, addr as u64) {
+            eprintln!("读取出错 :{} , Error: {}", addr, err)
         };
+        // if let Err(_) = process_vm_readv(self.pid, addr, &mut buf) {
+        //     if let Err(err) = self.mem_file.read_at(&mut buf, addr as u64) {
+        //         eprintln!("读取出错 :{} , Error: {}", addr, err)
+        //     };
+        // };
         buf
     }
 

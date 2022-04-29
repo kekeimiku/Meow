@@ -16,12 +16,15 @@ extern "C" {
     pub fn dlclose(handle: *mut c_void) -> i32;
 }
 
-pub fn lock() {}
+pub fn lock(addr: usize, len: usize) {
+    let s = unsafe { mlock(addr as *const c_void, len) };
+    println!("lock 结果 {}", s);
+}
 
 pub fn unlock() {}
 
 pub fn mpt(addr: usize, len: usize, prot: i32) -> Result<()> {
-    match unsafe { mprotect(addr as *mut _, len, prot) } {
+    match unsafe { mprotect(addr as *mut c_void, len, prot) } {
         0 => Ok(()),
         _ => Err(Error::SysCall(std::io::Error::last_os_error())),
     }
@@ -92,6 +95,36 @@ extern "C" {
 pub fn get_termsize() -> WinSize {
     let us = WinSize::default();
     unsafe { ioctl(1, 0x5413, &us) };
-    println!("{:?}", us);
     us
+}
+
+#[inline(always)]
+pub fn memcmp(x: &[u8], y: &[u8]) -> bool {
+    if x.len() != y.len() {
+        return false;
+    }
+    if x.len() < 4 {
+        for (&b1, &b2) in x.iter().zip(y) {
+            if b1 != b2 {
+                return false;
+            }
+        }
+        return true;
+    }
+    unsafe {
+        let (mut px, mut py) = (x.as_ptr(), y.as_ptr());
+        let (pxend, pyend) = (px.add(x.len() - 4), py.add(y.len() - 4));
+        while px < pxend {
+            let vx = (px as *const u32).read_unaligned();
+            let vy = (py as *const u32).read_unaligned();
+            if vx != vy {
+                return false;
+            }
+            px = px.add(4);
+            py = py.add(4);
+        }
+        let vx = (pxend as *const u32).read_unaligned();
+        let vy = (pyend as *const u32).read_unaligned();
+        vx == vy
+    }
 }

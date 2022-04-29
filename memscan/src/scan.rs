@@ -4,6 +4,7 @@ use std::path::Path;
 use memchr::memmem::find_iter;
 
 use crate::error::Result;
+use crate::libc::memcmp;
 use crate::maps::MapRange;
 
 #[derive(Debug)]
@@ -14,7 +15,7 @@ pub struct MemScan {
     pub input: Vec<u8>,            //输入的值，用来读取那个
     pub lock_cache: Vec<u8>,       //冻结的地址列表
     pub save_cache: Vec<u8>,       //主动保存的地址列表
-    pub mem_file: File,             //内存文件
+    pub mem_file: File,            //内存文件
 }
 
 impl MemScan {
@@ -48,12 +49,21 @@ impl MemScan {
     pub fn change_mem(&mut self) -> Result<()> {
         let tmp = self.addr_cache.clone();
         self.addr_cache.clear();
-        self.addr_cache = tmp
-            .into_iter()
-            .filter(|addr| self.read_bytes(*addr, self.input.len()) != self.input)
-            .collect();
+        // self.addr_cache = tmp
+        //     .into_iter()
+        //     .filter(|addr| &self.read_bytes(*addr, self.input.len()) != &self.input)
+        //     .collect();
+
+        for addr in tmp {
+            if !memcmp(&self.read_bytes(addr, self.input.len()), &self.input) {
+                self.addr_cache.push(addr)
+            }
+        }
+
         Ok(())
     }
+
+    pub fn lock_meme(&self) {}
 
     // 直接搜索全部内存，不论数值
     pub fn unsafe_all(&self) {}
@@ -104,5 +114,4 @@ impl MemScan {
 
     // 打印maps列表 规则同上
     pub fn map_list(&self) {}
-
 }

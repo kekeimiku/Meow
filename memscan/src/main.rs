@@ -1,14 +1,27 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use memscan::scan::MemScan;
+use memscan::{promt::start, scan::MemScan};
 // use memscan::promt::start;
 
 fn main() {
-    main1();
+    // let mut app = MemScan::new(4093).unwrap();
+    // loop {
+    // app.write_bytes(0x7ffd8ccfccb0, &9995_i32.to_le_bytes());
+    // std::thread::sleep(Duration::from_micros(10));
+    // }
+
+    // let a = vec![1, 2, 3];
+    // let b = vec![2];
+    // println!("{}", memcmp(&a, &b));
+
+    // main1()
+    start().unwrap()
 }
 
 fn main1() {
-    let mut app = MemScan::new(49277).unwrap();
+    //7ffd8ccfccb0
+
+    let mut app = MemScan::new(5442).unwrap();
     let input = &1_u8.to_le_bytes();
     let start = SystemTime::now()
         .duration_since(UNIX_EPOCH)

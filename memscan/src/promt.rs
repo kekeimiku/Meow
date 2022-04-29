@@ -1,5 +1,4 @@
-use crate::MemScan;
-use crate::Result;
+use crate::{error::Result, scan::MemScan};
 use std::io::Write;
 
 fn prompt(name: &str) -> Result<Vec<String>> {
@@ -16,7 +15,7 @@ fn prompt(name: &str) -> Result<Vec<String>> {
 
 pub fn start() -> Result<()> {
     let pid = std::env::args().nth(1).unwrap().parse::<i32>()?;
-    let mut app = MemScan::new(pid);
+    let mut app = MemScan::new(pid).unwrap();
 
     loop {
         let prompt = prompt("> ")?;
@@ -30,7 +29,7 @@ pub fn start() -> Result<()> {
                         println!("需要两个参数")
                     } else {
                         if input[1] == "int" {
-                            let i = &input[2].parse::<u8>().unwrap().to_le_bytes();
+                            let i = &input[2].parse::<i32>().unwrap().to_le_bytes();
                             app.search_all(i)?;
                             app.input = i.to_vec();
                             app.addr_list(10)
@@ -83,6 +82,7 @@ pub fn start() -> Result<()> {
                     println!("重新搜索");
                     app.reset()
                 }
+                "lock" => {}
                 "list" => app.addr_list(10),
                 "exit" | "quit" => std::process::exit(0),
                 "help" => {
