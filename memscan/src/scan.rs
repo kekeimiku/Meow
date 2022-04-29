@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::path::Path;
 
 use memchr::memmem::find_iter;
@@ -16,6 +16,7 @@ pub struct MemScan {
     pub lock_cache: Vec<u8>,       //冻结的地址列表
     pub save_cache: Vec<u8>,       //主动保存的地址列表
     pub mem_file: File,            //内存文件
+    pub mem_cache: Vec<u8>,
 }
 
 impl MemScan {
@@ -27,7 +28,11 @@ impl MemScan {
             input: Vec::default(),
             lock_cache: Vec::default(),
             save_cache: Vec::default(),
-            mem_file: File::open(&Path::new(&format!("/proc/{}/mem", pid)))?,
+            mem_file: OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&Path::new(&format!("/proc/{}/mem", pid)))?,
+            mem_cache: Vec::default(),
         })
     }
 
@@ -49,16 +54,10 @@ impl MemScan {
     pub fn change_mem(&mut self) -> Result<()> {
         let tmp = self.addr_cache.clone();
         self.addr_cache.clear();
-        // self.addr_cache = tmp
-        //     .into_iter()
-        //     .filter(|addr| &self.read_bytes(*addr, self.input.len()) != &self.input)
-        //     .collect();
-
-        for addr in tmp {
-            if !memcmp(&self.read_bytes(addr, self.input.len()), &self.input) {
-                self.addr_cache.push(addr)
-            }
-        }
+        self.addr_cache = tmp
+            .into_iter()
+            .filter(|addr| &self.read_bytes(*addr, self.input.len()) != &self.input)
+            .collect();
 
         Ok(())
     }
@@ -80,7 +79,7 @@ impl MemScan {
 
     pub fn more_mem(&self) {}
 
-    // 清空所有缓存，重新开始
+    // 清空所有缓存，重新开始，pid不变
     pub fn reset(&mut self) {
         self.maps_cache.clear();
         self.addr_cache.clear();

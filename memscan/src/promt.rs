@@ -1,5 +1,13 @@
-use crate::{error::Result, scan::MemScan};
-use std::io::Write;
+use crate::{
+    error::{Error, Result},
+    scan::MemScan,
+};
+use std::{
+    io::Write,
+    os::unix::prelude::FileExt,
+    thread::{self, sleep},
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 fn prompt(name: &str) -> Result<Vec<String>> {
     let mut line = String::new();
@@ -14,7 +22,10 @@ fn prompt(name: &str) -> Result<Vec<String>> {
 }
 
 pub fn start() -> Result<()> {
-    let pid = std::env::args().nth(1).unwrap().parse::<i32>()?;
+    let pid = std::env::args()
+        .nth(1)
+        .ok_or(Error::SplitNextError)?
+        .parse::<i32>()?;
     let mut app = MemScan::new(pid).unwrap();
 
     loop {
@@ -63,10 +74,21 @@ pub fn start() -> Result<()> {
                         );
                     }
                 }
+
                 "<" => {
+                    let start = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis();
                     app.change_mem().unwrap();
-                    println!("有变化");
-                    app.addr_list(10)
+                    let end = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis();
+
+                    // println!("len: {}  耗时: {}", app.addr_cache.len(), end - start);
+                    // println!("有变化");
+                    // app.addr_list(10)
                 }
                 ">" => {
                     // println!("{:?}",&app.addr_cache);
@@ -82,7 +104,15 @@ pub fn start() -> Result<()> {
                     println!("重新搜索");
                     app.reset()
                 }
-                "lock" => {}
+                "lock" => {
+                    let i = usize::from_str_radix(&input[1].replace("0x", ""), 16).unwrap();
+                    let b = app.input.clone();
+                    let f = app.mem_file.try_clone()?;
+                    thread::spawn(move || loop {
+                        f.write_at(&b, i as u64).unwrap();
+                        sleep(Duration::from_millis(200));
+                    });
+                }
                 "list" => app.addr_list(10),
                 "exit" | "quit" => std::process::exit(0),
                 "help" => {
@@ -91,5 +121,6 @@ pub fn start() -> Result<()> {
                 _ => {}
             };
         }
+        sleep(Duration::from_millis(50));
     }
 }
