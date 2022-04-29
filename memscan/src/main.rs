@@ -15,7 +15,10 @@ fn main() {
     // println!("{}", memcmp(&a, &b));
 
     // main1()
-    start().unwrap()
+    match start() {
+        Ok(_) => {}
+        Err(e) => println!("{}", e),
+    }
 }
 
 fn main1() {

@@ -23,7 +23,7 @@ impl MemScan {
 
         let mut buf = vec![0; size];
         if let Err(err) = self.mem_file.read_at(&mut buf, addr as u64) {
-            eprintln!("读取出错 :{} , Error: {}", addr, err)
+            eprintln!("读取出错 :0x{:x} , Error: {}", addr, err)
         };
         // if let Err(_) = process_vm_readv(self.pid, addr, &mut buf) {
         //     if let Err(err) = self.mem_file.read_at(&mut buf, addr as u64) {
