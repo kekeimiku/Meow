@@ -4,8 +4,7 @@ use crate::{
 };
 use std::{
     io::Write,
-    os::unix::prelude::FileExt,
-    thread::{self, sleep},
+    thread::sleep,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -104,15 +103,8 @@ pub fn start() -> Result<()> {
                     app.reset()
                 }
                 "lock" => {
-                    let i = usize::from_str_radix(&input[1].replace("0x", ""), 16).unwrap();
-                    let i2 = &input[2].parse::<i32>().unwrap();
-                    let b = app.input.clone();
-                    let f = app.mem_file.try_clone()?;
-                    let s = i2.clone();
-                    thread::spawn(move || loop {
-                        f.write_at(&s.to_le_bytes(), i as u64).unwrap();
-                        sleep(Duration::from_millis(200));
-                    });
+                    let i = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
+                    app.lock(i)?;
                 }
                 "list" => app.addr_list(10),
                 "exit" | "quit" => std::process::exit(0),

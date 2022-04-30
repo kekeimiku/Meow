@@ -1,4 +1,3 @@
-use std::io::BufReader;
 use std::os::unix::prelude::FileExt;
 
 use crate::error::Result;
@@ -37,7 +36,19 @@ impl MemScan {
     pub fn dump(&self) {}
 
     // 冻结一段内存
-    pub fn lock(&self) {}
+    pub fn lock(&self, addr: usize) -> Result<()> {
+        let f = self.mem_file.try_clone()?;
+        let value = self.input.clone();
+        std::thread::spawn(move || loop {
+            f.write_at(&value, addr as u64).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        });
+
+        Ok(())
+    }
+
+    // 批量冻结
+    pub fn lockall() {}
 
     // 解冻
     pub fn unlock(&self) {}

@@ -56,7 +56,7 @@ impl MemScan {
             self.mem_cache.push(v);
             let addr = find_iter(&self.mem_cache[num], value).collect::<Vec<_>>();
             self.addr_cache.push(addr);
-            num = num + 1;
+            num += 1;
             println!(
                 "[{}/{}] 0x{:x}-0x{:x} ...",
                 num,
@@ -68,7 +68,7 @@ impl MemScan {
 
         num = 0;
         for i in &self.addr_cache {
-            num = num + i.len()
+            num += i.len()
         }
         println!("共找到: {} 条", num);
 
@@ -116,7 +116,7 @@ impl MemScan {
             .iter()
             .enumerate()
             .flat_map(|(k, v)| {
-                v.into_iter()
+                v.iter()
                     .map(|addr| self.maps_cache[k].start() + addr)
                     .collect::<Vec<_>>()
             })
