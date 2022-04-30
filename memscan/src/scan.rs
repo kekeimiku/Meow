@@ -6,10 +6,12 @@ use memchr::memmem::find_iter;
 use crate::error::Result;
 use crate::maps::MapRange;
 
+// TODO 等待重构.......
 // TODO 模糊搜索：
 // 查找内存是否发生变化应该有两种：1.相对于自身原有值的变化。2.相对于输入值变化。
 // 具体变化应该分为 变大，变小，没有变化，大于x，小于x
 // 回退上一次搜索
+// 直接扫描图像内存
 
 #[derive(Debug)]
 pub struct MemScan {
@@ -21,7 +23,7 @@ pub struct MemScan {
     pub save_cache: Vec<u8>,         //主动保存的地址列表
     pub mem_file: File,              //文件
     pub mem_cache: Vec<Vec<u8>>,     //内存缓存
-    pub gen_cache: Vec<usize>,      //结果汇总缓存
+    pub gen_cache: Vec<usize>,       //结果汇总缓存
     pub value_cache: Vec<Vec<u8>>,   //读取到的值缓存
                                      //pub his 历史
 }
@@ -55,7 +57,13 @@ impl MemScan {
             let addr = find_iter(&self.mem_cache[num], value).collect::<Vec<_>>();
             self.addr_cache.push(addr);
             num = num + 1;
-            println!("[{}] 0x{:x}-0x{:x} ...", num, line.start(), line.end());
+            println!(
+                "[{}/{}] 0x{:x}-0x{:x} ...",
+                num,
+                self.maps_cache.len(),
+                line.start(),
+                line.end()
+            );
         }
 
         num = 0;
@@ -90,7 +98,11 @@ impl MemScan {
             .map(|(k, v)| -> Vec<_> {
                 v.into_iter()
                     .filter(|addr| {
-                        &self.mem_cache[k][*addr..*addr + self.input.len()] < &self.input
+                        let mc = &self.mem_cache[k][*addr..*addr + self.input.len()];
+                        // if mc < &self.input {
+                        //     println!("相对输入发生变化的值{:?}", mc);
+                        // }
+                        mc < &self.input
                     })
                     .collect()
             })
@@ -113,9 +125,7 @@ impl MemScan {
         Ok(())
     }
 
-    pub fn change_self_mem(&mut self){
-
-    }
+    pub fn change_self_mem(&mut self) {}
 
     pub fn lock_meme(&self) {}
 
@@ -154,7 +164,7 @@ impl MemScan {
     pub fn addr_list(&mut self, num: usize) {
         if self.gen_cache.len() > num {
             self.gen_cache[0..num].iter().for_each(|a| {
-                println!("0x{:x}", a);
+                println!("addr 0x{:x}", a);
             });
             println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
         }

@@ -105,10 +105,12 @@ pub fn start() -> Result<()> {
                 }
                 "lock" => {
                     let i = usize::from_str_radix(&input[1].replace("0x", ""), 16).unwrap();
+                    let i2 = &input[2].parse::<i32>().unwrap();
                     let b = app.input.clone();
                     let f = app.mem_file.try_clone()?;
+                    let s = i2.clone();
                     thread::spawn(move || loop {
-                        f.write_at(&b, i as u64).unwrap();
+                        f.write_at(&s.to_le_bytes(), i as u64).unwrap();
                         sleep(Duration::from_millis(200));
                     });
                 }

@@ -13,6 +13,5 @@ memchr = { version = "2", default-features = false }
 debug = true
 lto = true
 codegen-units = 1
-panic = "unwind"
 # panic = "abort"
 # strip = true
