@@ -40,7 +40,7 @@ pub fn start() -> Result<()> {
                         println!("需要两个参数")
                     } else {
                         if input[1] == "int" {
-                            let i = &input[2].parse::<u8>().unwrap().to_le_bytes();
+                            let i = &input[2].parse::<i32>().unwrap().to_le_bytes();
                             app.search_all(i)?;
                             app.input = i.to_vec();
                             app.addr_list(10)
@@ -80,15 +80,14 @@ pub fn start() -> Result<()> {
                         .duration_since(UNIX_EPOCH)
                         .unwrap()
                         .as_millis();
-                    app.change_mem()?;
+                    app.change_input_mem()?;
                     let end = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .unwrap()
                         .as_millis();
 
-                    // println!("len: {}  耗时: {}", app.addr_cache.len(), end - start);
-                    // println!("有变化");
-                    // app.addr_list(10)
+                    println!(" 耗时: {}，相对于输入变小的值: ", end - start);
+                    app.addr_list(10)
                 }
                 ">" => {
                     // println!("{:?}",&app.addr_cache);

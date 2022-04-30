@@ -21,40 +21,40 @@ fn main() {
     }
 }
 
-fn main1() {
-    //7ffd8ccfccb0
+// fn main1() {
+//     //7ffd8ccfccb0
 
-    let mut app = MemScan::new(5442).unwrap();
-    let input = &1_u8.to_le_bytes();
-    let start = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    app.search_all(input).unwrap();
-    let end = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    println!("len: {}  耗时: {}", app.addr_cache.len(), end - start);
-    app.input = input.to_vec();
+//     let mut app = MemScan::new(5442).unwrap();
+//     let input = &1_u8.to_le_bytes();
+//     let start = SystemTime::now()
+//         .duration_since(UNIX_EPOCH)
+//         .unwrap()
+//         .as_millis();
+//     app.search_all(input).unwrap();
+//     let end = SystemTime::now()
+//         .duration_since(UNIX_EPOCH)
+//         .unwrap()
+//         .as_millis();
+//     println!("len: {}  耗时: {}", app.addr_cache.len(), end - start);
+//     app.input = input.to_vec();
 
-    app.addr_list(10);
+//     app.addr_list(10);
 
-    let start = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    app.change_mem().unwrap();
-    let end = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    println!("len: {}  耗时: {}", app.addr_cache.len(), end - start);
+//     let start = SystemTime::now()
+//         .duration_since(UNIX_EPOCH)
+//         .unwrap()
+//         .as_millis();
+//     app.change_input_mem().unwrap();
+//     let end = SystemTime::now()
+//         .duration_since(UNIX_EPOCH)
+//         .unwrap()
+//         .as_millis();
+//     println!("len: {}  耗时: {}", app.addr_cache.len(), end - start);
 
-    app.addr_list(10);
+//     app.addr_list(10);
 
-    // match start() {
-    //     Ok(_) => {}
-    //     Err(err) => println!("{:?}", err),
-    // }
-}
+//     // match start() {
+//     //     Ok(_) => {}
+//     //     Err(err) => println!("{:?}", err),
+//     // }
+// }
