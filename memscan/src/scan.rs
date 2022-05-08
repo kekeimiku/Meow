@@ -1,181 +1,169 @@
-use std::fs::{File, OpenOptions};
-use std::path::Path;
+use std::{
+    fs::{File, OpenOptions},
+    path::Path,
+};
 
+use crate::{error::Result, maps::MapRange};
 use memchr::memmem::find_iter;
-
-use crate::error::Result;
-use crate::maps::MapRange;
-
-// TODO 等待重构.......
-// TODO 模糊搜索：
-// 查找内存是否发生变化应该有两种：1.相对于自身原有值的变化。2.相对于输入值变化。
-// 具体变化应该分为 变大，变小，没有变化，大于x，小于x
-// 回退上一次搜索
-// 直接扫描图像内存
 
 #[derive(Debug)]
 pub struct MemScan {
     pub pid: i32,                    //pid
+    pub input: Vec<u8>,              //输入缓存
     pub maps_cache: Vec<MapRange>,   //maps缓存
-    pub addr_cache: Vec<Vec<usize>>, //查找到的地址缓存
-    pub input: Vec<u8>,              //输入的值
-    pub lock_cache: Vec<u8>,         //冻结的地址列表
-    pub save_cache: Vec<u8>,         //主动保存的地址列表
+    pub mem_cache: Vec<Vec<u8>>,     //mem缓存
     pub mem_file: File,              //文件
-    pub mem_cache: Vec<Vec<u8>>,     //内存缓存
-    pub gen_cache: Vec<usize>,       //结果汇总缓存
-    pub value_cache: Vec<Vec<u8>>,   //读取到的值缓存
-                                     //pub his 历史
+    pub addr_cache: Vec<Vec<usize>>, //地址缓存
 }
 
 impl MemScan {
     pub fn new(pid: i32) -> Result<Self> {
         Ok(Self {
             pid,
-            maps_cache: Vec::default(),
-            addr_cache: Vec::default(),
             input: Vec::default(),
-            lock_cache: Vec::default(),
-            save_cache: Vec::default(),
+            maps_cache: Vec::default(),
+            mem_cache: Vec::default(),
+            addr_cache: Vec::default(),
             mem_file: OpenOptions::new()
                 .read(true)
                 .write(true)
                 .open(&Path::new(&format!("/proc/{}/mem", pid)))?,
-            mem_cache: Vec::default(),
-            gen_cache: Vec::default(),
-            value_cache: Vec::default(),
         })
     }
 
-    pub fn search_all(&mut self, value: &[u8]) -> Result<()> {
+    // 第一次搜索把结果缓存
+    pub fn first_scan(&mut self) -> Result<()> {
         self.readmaps_lv1()?;
 
-        let mut num = 0;
-        for line in &self.maps_cache {
-            let v = self.read_bytes(line.start(), line.end() - line.start());
-            self.mem_cache.push(v);
-            let addr = find_iter(&self.mem_cache[num], value).collect::<Vec<_>>();
-            self.addr_cache.push(addr);
-            num += 1;
-            println!(
-                "[{}/{}] 0x{:x}-0x{:x} ...",
-                num,
-                self.maps_cache.len(),
-                line.start(),
-                line.end()
-            );
+        if self.addr_cache.is_empty() {
+            self.addr_cache = self
+                .maps_cache
+                .iter()
+                .map(|m| {
+                    find_iter(
+                        &self.read_bytes(m.start(), m.end() - m.start()),
+                        &self.input,
+                    )
+                    .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+        } else {
+            let tmp = self.addr_cache.clone();
+            self.addr_cache.clear();
+            for (m, v) in self.maps_cache.iter().zip(tmp.iter()) {
+                let mem = self.read_bytes(m.start(), m.end() - m.start());
+                self.addr_cache.push(
+                    v.iter()
+                        .filter(|a| mem[**a..**a + self.input.len()].to_vec() == self.input)
+                        .copied()
+                        .collect::<Vec<_>>(),
+                );
+            }
+            self.addr_cache.shrink_to_fit();
         }
 
-        num = 0;
-        for i in &self.addr_cache {
-            num += i.len()
-        }
-        println!("共找到: {} 条", num);
-
-        // println!("{:?}", &self.addr_cache);
+        assert_eq!(self.addr_cache.len(),self.maps_cache.len());
+        println!("ac len {}", self.addr_cache.len());
+        println!("m len {}", self.maps_cache.len());
 
         Ok(())
     }
 
-    // 过滤出比输入的值小的地址
-    pub fn change_input_mem(&mut self) -> Result<()> {
-        // TODO 过滤之后可以删掉addr_cache中空的value，其它缓存删除对应的key，可以有效减少内存使用
-
-        self.mem_cache.clear();
-        self.mem_cache.shrink_to_fit();
+    // 刷新缓存
+    fn refresh_mem_cache(&mut self) {
         self.mem_cache = self
             .maps_cache
             .iter()
-            .map(|line| self.read_bytes(line.start(), line.end() - line.start()))
+            .map(|m| self.read_bytes(m.start(), m.end() - m.start()))
             .collect();
+    }
 
+    // 相比输入变小的
+    pub fn input_less(&mut self) {
         let tmp = self.addr_cache.clone();
         self.addr_cache.clear();
+        for (m, v) in self.maps_cache.iter().zip(tmp.iter()) {
+            let mem = self.read_bytes(m.start(), m.end() - m.start());
+            self.addr_cache.push(
+                v.iter()
+                    .filter(|a| mem[**a..**a + self.input.len()].to_vec() < self.input)
+                    .copied()
+                    .collect::<Vec<_>>(),
+            );
+        }
         self.addr_cache.shrink_to_fit();
+
+        assert_eq!(self.addr_cache.len(),self.maps_cache.len());
+
+        // println!("ac len {}", self.addr_cache.len());
+        // println!("m len {}", self.maps_cache.len());
+    }
+
+    // 相比自身变小的
+    pub fn self_less(&mut self) {
+        let mem = self.mem_cache.clone();
+        self.refresh_mem_cache();
+
+        let tmp = self.addr_cache.clone();
         self.addr_cache = tmp
             .into_iter()
             .enumerate()
             .map(|(k, v)| -> Vec<_> {
                 v.into_iter()
                     .filter(|addr| {
-                        let mc = &self.mem_cache[k][*addr..*addr + self.input.len()];
-                        // if mc < &self.input {
-                        //     println!("相对输入发生变化的值{:?}", mc);
-                        // }
-                        mc < &self.input
+                        self.mem_cache[k][*addr..*addr + self.input.len()]
+                            < mem[k][*addr..*addr + self.input.len()]
                     })
                     .collect()
             })
             .collect();
+    }
 
-        self.gen_cache.clear();
-        self.gen_cache.shrink_to_fit();
-
-        self.gen_cache = self
-            .addr_cache
-            .iter()
-            .enumerate()
-            .flat_map(|(k, v)| {
-                v.iter()
-                    .map(|addr| self.maps_cache[k].start() + addr)
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-
+    pub fn list_maps(&self) -> Result<()> {
+        self.maps_cache.iter().for_each(|m| {
+            println!(
+                "0x{:x}-0x{:x} {}{}{} ",
+                m.start(),
+                m.end(),
+                m.read(),
+                m.write(),
+                m.exec()
+            );
+        });
         Ok(())
     }
 
-    pub fn change_self_mem(&mut self) {}
+    // 打印出来相对于系统的地址
+    pub fn list_abs_addr(&self) {
+        // let val = self
+        //     .addr_cache
+        //     .iter()
+        //     .enumerate()
+        //     .map(|(k, v)| {
+        //         v.iter()
+        //             .map(|a| a + self.maps_cache[k].start())
+        //             .collect::<Vec<_>>()
+        //     })
+        //     .collect::<Vec<_>>();
 
-    pub fn lock_meme(&self) {}
+        let mut n = 0;
+        self.addr_cache.iter().for_each(|v| {
+            // v.iter().for_each(|a| {
+            //     println!("0x{:x}", a);
+            // });
+            n += v.len();
+        });
 
-    // 直接搜索全部内存，不论数值
-    pub fn unsafe_all(&self) {}
-
-    // 打印冻结列表
-    pub fn lock_list(&self) {}
-
-    // 获取指针
-    pub fn get_ptr(&self) {}
-
-    pub fn less_mem(&self, _v: &[u8]) -> Result<()> {
-        Ok(())
+        println!("总数：{}", n);
     }
 
-    pub fn more_mem(&self) {}
-
-    // 清空所有缓存，重新开始，pid不变
-    pub fn reset(&mut self) {
+    pub fn clear(&mut self) {
+        self.input.clear();
         self.maps_cache.clear();
-        self.addr_cache.clear();
-        self.lock_cache.clear();
-        self.save_cache.clear();
         self.maps_cache.shrink_to_fit();
+        // self.mem_cache.clear();
+        // self.mem_cache.shrink_to_fit();
+        self.addr_cache.clear();
         self.addr_cache.shrink_to_fit();
-        self.lock_cache.shrink_to_fit();
-        self.save_cache.shrink_to_fit();
     }
-
-    // 清空缓存 刷新结果
-    pub fn update_at(&mut self) {}
-
-    // 打印地址列表 太多了 先打印个长度
-    // TODO 分页展示每个地址的值，用于直接观察变化，每页显示10个，loop读取20个值，翻到第二页的时候开始读取第20-30个，以此类推
-    pub fn addr_list(&mut self, num: usize) {
-        if self.gen_cache.len() > num {
-            self.gen_cache[0..num].iter().for_each(|a| {
-                println!("addr 0x{:x}", a);
-            });
-            println!(".......剩余 {} 条未显示", self.addr_cache.len() - num);
-        }
-
-        if self.gen_cache.len() < num {
-            self.gen_cache.iter().for_each(|a| {
-                println!("0x{:x}", a);
-            });
-        }
-    }
-
-    // 打印maps列表 规则同上
-    pub fn map_list(&self) {}
 }

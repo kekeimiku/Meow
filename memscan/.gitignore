@@ -1,7 +1,5 @@
-Cargo.lock
-target/
-.idea/
-
+/target
 flamegraph.svg
 perf.data
 perf.data.old
+Cargo.lock

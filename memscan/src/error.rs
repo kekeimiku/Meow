@@ -4,7 +4,8 @@ pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
     SysCall(std::io::Error),
-    SplitNextError,
+    ParseMapsError,
+    ArgsError,
     PidNotFound,
     ReadMemError,
     WriteMemError,
@@ -16,12 +17,13 @@ impl std::fmt::Display for Error {
         match self {
             Error::ParseIntError(e) => write!(f, "Parse error: {}", e),
             Error::IoError(e) => write!(f, "Io error: {}", e),
-            Error::SplitNextError => write!(f, "Split next error"),
+            Error::ParseMapsError => write!(f, "Parse maps error"),
             Error::SysCall(e) => write!(f, "Syscall Error: {}", e),
-            Error::PidNotFound => write!(f, "Pid not found"),
+            Error::PidNotFound => write!(f, "Pid not found"),   
             Error::ReadMemError => write!(f, "Read mem error"),
             Error::WriteMemError => write!(f, "Write mem error"),
-            Error::MprotectError => write!(f, "Mprotect Error"),
+            Error::MprotectError => write!(f, "Mprotect error"),
+            Error::ArgsError => write!(f, "Args error"),
         }
     }
 }

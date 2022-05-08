@@ -1,8 +1,5 @@
-mod error;
-pub mod libc;
-mod maps;
-mod mem;
-pub mod pbar;
-pub mod promt;
+pub mod error;
+pub mod maps;
+pub mod mem;
+pub mod prompt;
 pub mod scan;
-// pub mod cmd;
