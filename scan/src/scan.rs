@@ -52,12 +52,17 @@ impl MemScan {
                 })
                 .collect::<Vec<_>>();
         } else {
+
+            let s = &self.input;
+            let c: &[u8] = &s; // c: &[u8]
+
+
             for (m, k1) in self.maps_cache.iter().zip(0..self.addr_cache.len()) {
                 let mem = self.read_bytes(m.start(), m.end() - m.start());
                 for k2 in (0..self.addr_cache[k1].len()).rev() {
                     if mem[self.addr_cache[k1][k2]..self.addr_cache[k1][k2] + self.input.len()]
                         .to_vec()
-                        != self.input
+                        != c
                     {
                         self.addr_cache[k1].swap_remove(k2);
                         self.addr_cache[k1].shrink_to_fit();

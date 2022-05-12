@@ -43,3 +43,11 @@ where
         it2: it2.peekable(),
     }
 }
+
+pub fn x1(mut i1: Vec<usize>, mut i2: Vec<usize>) -> Vec<usize> {
+    i1.sort_unstable();
+    i2.sort_unstable();
+    sorted_difference(i2.iter(), i1.iter())
+        .copied()
+        .collect::<Vec<usize>>()
+}
