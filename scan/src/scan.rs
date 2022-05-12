@@ -6,11 +6,6 @@ use std::{
 use crate::{error::Result, maps::MapRange};
 use memchr::memmem::find_iter;
 
-pub struct Info {
-    pub offset: usize,
-    pub addr: usize,
-}
-
 #[derive(Debug)]
 pub struct MemScan {
     pub pid: i32,                    //pid
@@ -52,25 +47,19 @@ impl MemScan {
                 })
                 .collect::<Vec<_>>();
         } else {
-
-            let s = &self.input;
-            let c: &[u8] = &s; // c: &[u8]
-
+            let v: [u8; 4] = self.input[0..4].try_into().unwrap();
 
             for (m, k1) in self.maps_cache.iter().zip(0..self.addr_cache.len()) {
                 let mem = self.read_bytes(m.start(), m.end() - m.start());
                 for k2 in (0..self.addr_cache[k1].len()).rev() {
-                    if mem[self.addr_cache[k1][k2]..self.addr_cache[k1][k2] + self.input.len()]
-                        .to_vec()
-                        != c
-                    {
+                    if mem[self.addr_cache[k1][k2]..self.addr_cache[k1][k2] + v.len()] != v {
                         self.addr_cache[k1].swap_remove(k2);
                         self.addr_cache[k1].shrink_to_fit();
                     }
                 }
             }
         }
-        
+
         assert_eq!(self.addr_cache.len(), self.maps_cache.len());
         Ok(())
     }
@@ -86,51 +75,47 @@ impl MemScan {
 
     // 相比输入变小的
     pub fn input_less(&mut self) {
-        let tmp = self.addr_cache.clone();
-        self.addr_cache.clear();
-        for (m, v) in self.maps_cache.iter().zip(tmp.iter()) {
-            let mem = self.read_bytes(m.start(), m.end() - m.start());
-            self.addr_cache.push(
-                v.iter()
-                    .filter(|a| mem[**a..**a + self.input.len()].to_vec() < self.input)
-                    .copied()
-                    .collect::<Vec<_>>(),
-            );
-        }
-        self.addr_cache.shrink_to_fit();
+        // let tmp = self.addr_cache.clone();
+        // self.addr_cache.clear();
+        // for (m, v) in self.maps_cache.iter().zip(tmp.iter()) {
+        //     let mem = self.read_bytes(m.start(), m.end() - m.start());
+        //     self.addr_cache.push(
+        //         v.iter()
+        //             .filter(|a| mem[**a..**a + self.input.len()].to_vec() < self.input)
+        //             .copied()
+        //             .collect::<Vec<_>>(),
+        //     );
+        // }
+        // self.addr_cache.shrink_to_fit();
 
         assert_eq!(self.addr_cache.len(), self.maps_cache.len());
     }
 
     // 相比自身变小的
     pub fn self_less(&mut self) {
-        let mem = self.mem_cache.clone();
-        self.refresh_mem_cache();
-
-        let tmp = self.addr_cache.clone();
-        self.addr_cache = tmp
-            .into_iter()
-            .enumerate()
-            .map(|(k, v)| -> Vec<_> {
-                v.into_iter()
-                    .filter(|addr| {
-                        self.mem_cache[k][*addr..*addr + self.input.len()]
-                            < mem[k][*addr..*addr + self.input.len()]
-                    })
-                    .collect()
-            })
-            .collect();
+        for (m, k1) in self.maps_cache.iter().zip(0..self.addr_cache.len()) {
+            let mem = self.read_bytes(m.start(), m.end() - m.start());
+            for k2 in (0..self.addr_cache[k1].len()).rev() {
+                if mem[self.addr_cache[k1][k2]..self.addr_cache[k1][k2] + self.input.len()].to_vec()
+                    > self.input
+                {
+                    self.addr_cache[k1].swap_remove(k2);
+                    self.addr_cache[k1].shrink_to_fit();
+                }
+            }
+        }
     }
 
     pub fn list_maps(&self) -> Result<()> {
         self.maps_cache.iter().for_each(|m| {
             println!(
-                "0x{:x}-0x{:x} {}{}{} ",
+                "0x{:x}-0x{:x} {}{}{} {}",
                 m.start(),
                 m.end(),
                 m.read(),
                 m.write(),
-                m.exec()
+                m.exec(),
+                m.pathname()
             );
         });
         Ok(())
@@ -155,9 +140,7 @@ impl MemScan {
         // });
 
         let mut n = 0;
-        self.addr_cache.iter().for_each(|f|{
-            n = n+f.len()
-        });
+        self.addr_cache.iter().for_each(|f| n += f.len());
 
         println!("总数：{}", n);
     }

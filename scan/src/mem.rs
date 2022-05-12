@@ -21,7 +21,7 @@ impl MemScan {
         };
         buf
     }
-    
+
     // TODO dump 一段内存 从缓存里面拿还是内存里面拿一份最新的？
     pub fn dump(&self, path: &str, start: usize, size: usize) -> Result<()> {
         let mut file = File::create(Path::new(path))?;

@@ -53,7 +53,7 @@ fn find(app: &mut MemScan, input: &[&str]) -> Result<()> {
     if input.len() < 2 {
         println!("需要两个参数")
     } else if input[1] == "int" {
-        let input_value = &input[2].parse::<i32>().unwrap().to_le_bytes();
+        let input_value = &input[2].parse::<i32>()?.to_le_bytes();
         app.input = input_value.to_vec();
         app.first_scan()?;
     }

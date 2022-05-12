@@ -19,7 +19,7 @@ impl std::fmt::Display for Error {
             Error::IoError(e) => write!(f, "Io error: {}", e),
             Error::ParseMapsError => write!(f, "Parse maps error"),
             Error::SysCall(e) => write!(f, "Syscall Error: {}", e),
-            Error::PidNotFound => write!(f, "Pid not found"),   
+            Error::PidNotFound => write!(f, "Pid not found"),
             Error::ReadMemError => write!(f, "Read mem error"),
             Error::WriteMemError => write!(f, "Write mem error"),
             Error::MprotectError => write!(f, "Mprotect error"),
