@@ -102,7 +102,7 @@ impl Default for Cache {
 impl ScanExt for Process {
     fn scan(&mut self) -> Result<()> {
         if self.cache.addr_cache.is_empty() {
-            self.cache.maps_cache = self.readmaps_all()?.into_iter().collect::<Vec<MapRange>>();
+            self.cache.maps_cache = self.readmaps_v1()?.into_iter().collect::<Vec<MapRange>>();
             self.cache.addr_cache = self
                 .cache
                 .maps_cache
@@ -116,6 +116,7 @@ impl ScanExt for Process {
                 })
                 .collect();
         } else {
+            // TODO 如果addr_cache[k].len() 为0，则删除maps_cache[k]
             let v: [u8; 4] = self.cache.input[0..4].try_into().unwrap();
             for (m, k1) in self
                 .cache
@@ -125,6 +126,11 @@ impl ScanExt for Process {
             {
                 let mem = self.read(m.start(), m.end() - m.start());
                 for k2 in (0..self.cache.addr_cache[k1].len()).rev() {
+                    // if mem.is_empty(){
+                    //     self.cache.addr_cache[k1].swap_remove(k2);
+                    //     self.cache.addr_cache[k1].shrink_to_fit();
+                    //     break;
+                    // }
                     if mem[self.cache.addr_cache[k1][k2]..self.cache.addr_cache[k1][k2] + v.len()]
                         != v
                     {
@@ -139,19 +145,19 @@ impl ScanExt for Process {
     }
 
     fn print(&mut self) -> Result<()> {
-        let val = self
-            .cache
-            .addr_cache
-            .iter()
-            .enumerate()
-            .map(|(k, v)| {
-                v.iter()
-                    .map(|a| a + self.cache.maps_cache[k].start())
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-        val.iter()
-            .for_each(|f| f.iter().for_each(|x| println!("0x{:x}", x)));
+        // let val = self
+        //     .cache
+        //     .addr_cache
+        //     .iter()
+        //     .enumerate()
+        //     .map(|(k, v)| {
+        //         v.iter()
+        //             .map(|a| a + self.cache.maps_cache[k].start())
+        //             .collect::<Vec<_>>()
+        //     })
+        //     .collect::<Vec<_>>();
+        // val.iter()
+        //     .for_each(|f| f.iter().for_each(|x| println!("0x{:x}", x)));
 
         let mut num = 0;
         self.cache
@@ -194,7 +200,7 @@ impl MemExt for Process {
         std::thread::spawn(move || loop {
             nerr!(
                 f.write_at(&payload, addr as u64),
-                format!("freeze addr 0x{:x} fail.", addr)
+                format!("freeze addr 0x{:x} fail. retrying...", addr)
             );
             sleep(Duration::from_millis(20));
         });
