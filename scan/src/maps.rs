@@ -1,9 +1,4 @@
-use std::{fs::File, io::Read, path::Path};
-
-use crate::{
-    error::{Error::ParseMapsError, Result},
-    scan::MemScan,
-};
+use crate::error::{Error::ParseMapsError, Result};
 
 #[derive(Debug)]
 pub struct MapRange {
@@ -78,33 +73,4 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<MapRange>> {
         });
     }
     Ok(vec)
-}
-
-impl MemScan {
-    pub fn readmaps_lv1(&mut self) -> Result<()> {
-        let mut file = File::open(&Path::new(&format!("/proc/{}/maps", self.pid)))?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        self.maps_cache = parse_proc_maps(&contents)?
-            .into_iter()
-            .filter(|m| {
-                m.end() - m.start() > 0 && (m.pathname() == "[heap]" || m.pathname() == "[stack]")
-                    || (m.pathname().is_empty() && m.is_read() && m.is_write())
-                    || (m.pathname().is_empty() && m.is_read() && m.is_write() && m.is_exec())
-            })
-            .collect::<Vec<MapRange>>();
-        Ok(())
-    }
-
-    // [anon:libc_malloc]
-    pub fn readca(&mut self) -> Result<()> {
-        let mut file = File::open(&Path::new(&format!("/proc/{}/maps", self.pid)))?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        self.maps_cache = parse_proc_maps(&contents)?
-            .into_iter()
-            .filter(|m| m.end() - m.start() > 0 && m.pathname() == "[anon:libc_malloc]")
-            .collect::<Vec<MapRange>>();
-        Ok(())
-    }
 }

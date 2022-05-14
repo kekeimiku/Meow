@@ -1,4 +1,4 @@
-use scan::{prompt::start, mem::ttt};
+use scan::prompt::start;
 
 fn main() {
     match start() {
