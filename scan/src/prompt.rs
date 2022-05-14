@@ -2,7 +2,7 @@ use std::{thread::sleep, time::Duration};
 
 use crate::{
     error::{Error, Result},
-    mem::{InjectExt, Process, ScanExt},
+    mem::{InjectExt, Process, ScanExt, MemExt},
 };
 
 pub fn prompt(name: &str) -> Result<Vec<String>> {
@@ -33,29 +33,24 @@ pub fn start() -> Result<()> {
             match input[0] {
                 "find" => {
                     let input_val = &input[1].parse::<i32>()?.to_le_bytes();
-                    app.scan(input_val.to_vec(), 1)?;
-                    // find(&mut app, &input)?;
-                    // app.list_abs_addr()
+                    app.cache.input = input_val.to_vec();
+                    app.scan()?;
                 }
                 "status" => {
-                    let input_val = &input[1].parse::<i32>()?.to_le_bytes();
-                    app.scan(input_val.to_vec(), 3)?;
+                    app.scan()?;
                 }
                 "p" => {
-                    let input_val = &input[1].parse::<i32>()?.to_le_bytes();
-                    app.scan(input_val.to_vec(), 5)?;
+                    app.print()?;
                 }
                 "inject" => {
                     let libpath = &input[1];
                     app.inject(libpath)?;
                 }
-                // "<" => less(&mut app, &input),
-                // "read" => read(&mut app, &input)?,
-                // "laddr" => laddr(&mut app),
-                // "lmap" => lamp(&mut app)?,
-                // "clear" => app.clear(),
-                // "help" => help(),
-                // "exit" => exit(0),
+                "w"=>{
+                    let addr = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
+                    let input_val = &input[2].parse::<i32>()?.to_le_bytes();
+                    app.write(addr, input_val);
+                }
                 _ => {}
             }
         }
