@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 memchr = { version = "2", default-features = false }
-pbar = {path = "../pbar" ,version = "0.1.0" }
+goblin = "0.5.1"
 
 [profile.dev]
 # strip = true
