@@ -44,6 +44,7 @@ pub fn start() -> Result<()> {
                 }
                 "inject" => {
                     let libpath = &input[1];
+                    dbg!(libpath);
                     app.inject(libpath)?;
                 }
                 "w" => {
