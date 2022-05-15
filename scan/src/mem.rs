@@ -22,14 +22,6 @@ use crate::{
     maps::{parse_proc_maps, MapRange},
 };
 
-macro_rules! nerr {
-    ($e:expr,$s:expr) => {
-        if let Err(err) = $e {
-            eprintln!("Error: {} {}", $s, err)
-        }
-    };
-}
-
 pub struct Process {
     pub pid: i32,
     pub mem: File,
@@ -57,9 +49,9 @@ impl Process {
 }
 
 pub trait MemExt {
-    fn write(&self, addr: usize, payload: &[u8]) -> usize;
-    fn read(&self, addr: usize, size: usize) -> Vec<u8>;
-    fn dump(&self, addr: usize, size: usize, path: &str) -> Result<()>;
+    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
+    fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>>;
+    fn dump(&self, addr: usize, size: usize, path: &str) -> Result<usize>;
     fn freeze(&self, va: usize, payload: Vec<u8>) -> Result<()>;
     fn unfreeze(&self, va: usize, payload: Vec<u8>) -> Result<()>;
 }
@@ -83,87 +75,79 @@ pub trait ScanExt {
     fn print(&mut self) -> Result<()>;
 }
 
+#[derive(Default)]
 pub struct Cache {
     pub input: Vec<u8>,
-    pub maps_cache: Vec<MapRange>,
-    pub addr_cache: Vec<Vec<usize>>,
-}
-
-impl Default for Cache {
-    fn default() -> Self {
-        Cache {
-            input: Vec::default(),
-            maps_cache: Vec::default(),
-            addr_cache: Vec::default(),
-        }
-    }
+    pub maps: Vec<MapRange>,
+    pub addr: Vec<Vec<usize>>,
 }
 
 impl ScanExt for Process {
     fn scan(&mut self) -> Result<()> {
-        if self.cache.addr_cache.is_empty() {
-            self.cache.maps_cache = self.readmaps_v1()?.into_iter().collect::<Vec<MapRange>>();
-            self.cache.addr_cache = self
+        if self.cache.addr.is_empty() {
+            self.cache.maps = self.readmaps_v1()?.into_iter().collect::<Vec<MapRange>>();
+            self.cache.addr = self
                 .cache
-                .maps_cache
+                .maps
                 .iter()
                 .map(|m| {
                     find_iter(
-                        &self.read(m.start(), m.end() - m.start()),
+                        &self
+                            .read(m.start(), m.end() - m.start())
+                            .unwrap_or_default(),
                         &self.cache.input,
                     )
                     .collect()
                 })
                 .collect();
         } else {
-            // TODO 如果addr_cache[k].len() 为0，则删除maps_cache[k]
             let v: [u8; 4] = self.cache.input[0..4].try_into().unwrap();
-            for (m, k1) in self
-                .cache
-                .maps_cache
-                .iter()
-                .zip(0..self.cache.addr_cache.len())
-            {
-                let mem = self.read(m.start(), m.end() - m.start());
-                for k2 in (0..self.cache.addr_cache[k1].len()).rev() {
-                    // if mem.is_empty(){
-                    //     self.cache.addr_cache[k1].swap_remove(k2);
-                    //     self.cache.addr_cache[k1].shrink_to_fit();
-                    //     break;
-                    // }
-                    if mem[self.cache.addr_cache[k1][k2]..self.cache.addr_cache[k1][k2] + v.len()]
-                        != v
-                    {
-                        self.cache.addr_cache[k1].swap_remove(k2);
-                        self.cache.addr_cache[k1].shrink_to_fit();
-                    }
+            
+            (0..self.cache.addr.len()).rev().for_each(|k| {
+                if self.cache.addr[k].is_empty() {
+                    self.cache.addr.swap_remove(k);
+                    self.cache.maps.swap_remove(k);
                 }
-            }
+            });
+
+            (0..self.cache.maps.len())
+                .zip(0..self.cache.addr.len())
+                .for_each(|(k1, k2)| {
+                    let mem = self
+                        .read(
+                            self.cache.maps[k1].start(),
+                            self.cache.maps[k1].end() - self.cache.maps[k1].start(),
+                        )
+                        .unwrap_or_default();
+                    (0..self.cache.addr[k2].len()).rev().for_each(|k3| {
+                        if mem[self.cache.addr[k2][k3]..self.cache.addr[k2][k3] + v.len()] != v {
+                            self.cache.addr[k2].swap_remove(k3);
+                            self.cache.addr[k2].shrink_to_fit();
+                        }
+                    });
+                });
         }
 
         Ok(())
     }
 
     fn print(&mut self) -> Result<()> {
-        // let val = self
-        //     .cache
-        //     .addr_cache
-        //     .iter()
-        //     .enumerate()
-        //     .map(|(k, v)| {
-        //         v.iter()
-        //             .map(|a| a + self.cache.maps_cache[k].start())
-        //             .collect::<Vec<_>>()
-        //     })
-        //     .collect::<Vec<_>>();
-        // val.iter()
-        //     .for_each(|f| f.iter().for_each(|x| println!("0x{:x}", x)));
+        let val = self
+            .cache
+            .addr
+            .iter()
+            .enumerate()
+            .map(|(k, v)| {
+                v.iter()
+                    .map(|a| a + self.cache.maps[k].start())
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        val.iter()
+            .for_each(|f| f.iter().for_each(|x| println!("0x{:x}", x)));
 
         let mut num = 0;
-        self.cache
-            .addr_cache
-            .iter()
-            .for_each(|f| num = num + f.len());
+        self.cache.addr.iter().for_each(|f| num += f.len());
         println!("{}", num);
 
         Ok(())
@@ -171,37 +155,34 @@ impl ScanExt for Process {
 }
 
 impl MemExt for Process {
-    fn write(&self, addr: usize, payload: &[u8]) -> usize {
-        nerr!(
-            self.mem.write_at(payload, addr as u64),
-            format!("write payload: {:?} to 0x{:x} fail.", payload, addr)
-        );
-        payload.len()
+    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize> {
+        self.mem.write_at(payload, addr as u64)?;
+        Ok(payload.len())
     }
 
-    fn read(&self, addr: usize, size: usize) -> Vec<u8> {
+    fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; size];
-        nerr!(
-            self.mem.read_at(&mut buf, addr as u64),
-            format!("read addr 0x{:x}-0x{:x} fail.", addr, addr + size)
-        );
-        buf
+        if let Err(e) = self.mem.read_at(&mut buf, addr as u64) {
+            println!("e: {}", e);
+        };
+        Ok(buf)
     }
 
-    fn dump(&self, addr: usize, size: usize, path: &str) -> Result<()> {
+    fn dump(&self, addr: usize, size: usize, path: &str) -> Result<usize> {
         let mut file = File::create(Path::new(path))?;
-        let data = self.read(addr, size);
-        file.write_all(&data)?;
-        Ok(())
+        match self.read(addr, size) {
+            Ok(v) => file.write_all(&v)?,
+            Err(e) => return Err(e),
+        };
+        Ok(size)
     }
 
     fn freeze(&self, addr: usize, payload: Vec<u8>) -> Result<()> {
         let f = self.mem.try_clone()?;
         std::thread::spawn(move || loop {
-            nerr!(
-                f.write_at(&payload, addr as u64),
-                format!("freeze addr 0x{:x} fail. retrying...", addr)
-            );
+            if let Err(e) = f.write_at(&payload, addr as u64) {
+                println!("Error freeze addr 0x{:x} fail. {}", addr, e);
+            };
             sleep(Duration::from_millis(20));
         });
         Ok(())

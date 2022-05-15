@@ -2,7 +2,7 @@ use std::{thread::sleep, time::Duration};
 
 use crate::{
     error::{Error, Result},
-    mem::{InjectExt, Process, ScanExt, MemExt},
+    mem::{InjectExt, MemExt, Process, ScanExt},
 };
 
 pub fn prompt(name: &str) -> Result<Vec<String>> {
@@ -46,10 +46,10 @@ pub fn start() -> Result<()> {
                     let libpath = &input[1];
                     app.inject(libpath)?;
                 }
-                "w"=>{
+                "w" => {
                     let addr = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
                     let input_val = &input[2].parse::<i32>()?.to_le_bytes();
-                    app.write(addr, input_val);
+                    app.write(addr, input_val)?;
                 }
                 _ => {}
             }
