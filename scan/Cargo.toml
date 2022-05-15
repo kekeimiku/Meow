@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 memchr = { version = "2", default-features = false }
 goblin = "0.5.1"
-fastrand = "1.7.0"
+# fastrand = "1.7.0"
 
 [profile.dev]
 # strip = true

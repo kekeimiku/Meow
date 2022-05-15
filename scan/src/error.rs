@@ -10,7 +10,7 @@ pub enum Error {
     ReadMemError,
     WriteMemError,
     MprotectError,
-    ElfError(goblin::error::Error)
+    ElfError(goblin::error::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -30,7 +30,7 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl From<goblin::error::Error> for Error{
+impl From<goblin::error::Error> for Error {
     fn from(e: goblin::error::Error) -> Self {
         Error::ElfError(e)
     }

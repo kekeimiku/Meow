@@ -241,7 +241,7 @@ impl SyscallExt for Process {
 // TODO 移除goblin依赖，使用更好的方式组装payload
 impl InjectExt for Process {
     fn inject(&mut self, lib_path: &str) -> Result<()> {
-        if lib_path.chars().nth(0).ok_or(Error::ArgsError)? != '/' {
+        if lib_path.chars().next().ok_or(Error::ArgsError)? != '/' {
             return Err(Error::ArgsError);
         }
 
