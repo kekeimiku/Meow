@@ -1,4 +1,4 @@
-// TODO 重新写一下，，
+// TODO 需要重构，，
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),
@@ -10,6 +10,7 @@ pub enum Error {
     ReadMemError,
     WriteMemError,
     MprotectError,
+    ElfError(goblin::error::Error)
 }
 
 impl std::fmt::Display for Error {
@@ -24,7 +25,14 @@ impl std::fmt::Display for Error {
             Error::WriteMemError => write!(f, "Write mem error"),
             Error::MprotectError => write!(f, "Mprotect error"),
             Error::ArgsError => write!(f, "Args error"),
+            Error::ElfError(e) => write!(f, "Elf Error: {}", e),
         }
+    }
+}
+
+impl From<goblin::error::Error> for Error{
+    fn from(e: goblin::error::Error) -> Self {
+        Error::ElfError(e)
     }
 }
 

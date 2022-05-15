@@ -102,7 +102,7 @@ impl ScanExt for Process {
                 .collect();
         } else {
             let v: [u8; 4] = self.cache.input[0..4].try_into().unwrap();
-            
+
             (0..self.cache.addr.len()).rev().for_each(|k| {
                 if self.cache.addr[k].is_empty() {
                     self.cache.addr.swap_remove(k);
@@ -242,9 +242,7 @@ impl SyscallExt for Process {
 impl InjectExt for Process {
     fn inject(&mut self, lib_path: &str) -> Result<()> {
         let buf = std::fs::read("/usr/lib/libc.so.6")?;
-        let sym = Elf::parse(&buf)
-            .ok()
-            .unwrap()
+        let sym = Elf::parse(&buf)?
             .find_sym_by_name("__libc_dlopen_mode")
             .ok_or(Error::PidNotFound)?;
         let dl = self.getlibc_addr()? as u64 + sym.st_value;
