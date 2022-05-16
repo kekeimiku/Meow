@@ -22,15 +22,12 @@ use crate::{
     maps::{parse_proc_maps, MapRange},
 };
 
-pub struct Process {
-    pub pid: i32,
-    pub mem: File,
-    pub maps: PathBuf,
-    pub syscall: PathBuf,
-    pub cache: Cache,
+pub struct Linux {
+    proc: Process,
+    cache: Cache,
 }
 
-impl Process {
+impl Linux {
     pub fn new(pid: i32) -> Result<Self> {
         let mem = OpenOptions::new()
             .read(true)
@@ -38,14 +35,37 @@ impl Process {
             .open(&Path::new(&format!("/proc/{}/mem", pid)))?;
         let maps = PathBuf::from(&format!("/proc/{}/maps", pid));
         let syscall = PathBuf::from(&format!("/proc/{}/syscall", pid));
+
         Ok(Self {
-            pid,
-            mem,
-            maps,
-            syscall,
+            proc: Process {
+                pid,
+                mem,
+                maps,
+                syscall,
+            },
             cache: Cache::default(),
         })
     }
+
+    pub fn input(&mut self, v: &[u8]) {
+        self.cache.input = v.to_vec()
+    }
+
+    pub fn clear(&mut self) {
+        self.cache.addr.clear();
+        self.cache.maps.clear();
+        self.cache.input.clear();
+        self.cache.addr.shrink_to_fit();
+        self.cache.maps.shrink_to_fit();
+        self.cache.input.shrink_to_fit();
+    }
+}
+
+pub struct Process {
+    pub pid: i32,
+    pub mem: File,
+    pub maps: PathBuf,
+    pub syscall: PathBuf,
 }
 
 pub trait MemExt {
@@ -57,9 +77,8 @@ pub trait MemExt {
 }
 
 pub trait MapsExt {
-    fn readmaps_all(&mut self) -> Result<Vec<MapRange>>;
-    fn readmaps_v1(&mut self) -> Result<Vec<MapRange>>;
-    fn getlibc_addr(&mut self) -> Result<usize>;
+    fn region_lv0(&mut self) -> Result<Vec<MapRange>>;
+    fn region_lv1(&mut self) -> Result<Vec<MapRange>>;
 }
 
 pub trait SyscallExt {
@@ -71,26 +90,35 @@ pub trait InjectExt {
 }
 
 pub trait ScanExt {
-    fn scan(&mut self) -> Result<()>;
+    fn scan(&mut self) -> Result<usize>;
     fn print(&mut self) -> Result<()>;
 }
 
 #[derive(Default)]
-pub struct Cache {
-    pub input: Vec<u8>,
-    pub maps: Vec<MapRange>,
-    pub addr: Vec<Vec<usize>>,
+struct Cache {
+    input: Vec<u8>,
+    maps: Vec<MapRange>,
+    addr: Vec<Vec<usize>>,
 }
 
-impl ScanExt for Process {
-    fn scan(&mut self) -> Result<()> {
+impl ScanExt for Linux {
+    fn scan(&mut self) -> Result<usize> {
+        let mut num = 0;
         if self.cache.addr.is_empty() {
-            self.cache.maps = self.readmaps_v1()?.into_iter().collect::<Vec<MapRange>>();
+            self.cache.maps = self.region_lv1()?.into_iter().collect::<Vec<MapRange>>();
             self.cache.addr = self
                 .cache
                 .maps
                 .iter()
                 .map(|m| {
+                    num += 1;
+                    println!(
+                        "[{}/{}] scan 0x{:x}-0x{:x} ...",
+                        num,
+                        self.cache.maps.len(),
+                        m.start(),
+                        m.end()
+                    );
                     find_iter(
                         &self
                             .read(m.start(), m.end() - m.start())
@@ -101,8 +129,6 @@ impl ScanExt for Process {
                 })
                 .collect();
         } else {
-            let v: [u8; 4] = self.cache.input[0..4].try_into().unwrap();
-
             (0..self.cache.addr.len()).rev().for_each(|k| {
                 if self.cache.addr[k].is_empty() {
                     self.cache.addr.swap_remove(k);
@@ -113,6 +139,14 @@ impl ScanExt for Process {
             (0..self.cache.maps.len())
                 .zip(0..self.cache.addr.len())
                 .for_each(|(k1, k2)| {
+                    num += 1;
+                    println!(
+                        "[{}/{}] scan 0x{:x}-0x{:x} ...",
+                        num,
+                        self.cache.maps.len(),
+                        self.cache.maps[k1].start(),
+                        self.cache.maps[k1].end()
+                    );
                     let mem = self
                         .read(
                             self.cache.maps[k1].start(),
@@ -120,7 +154,10 @@ impl ScanExt for Process {
                         )
                         .unwrap_or_default();
                     (0..self.cache.addr[k2].len()).rev().for_each(|k3| {
-                        if mem[self.cache.addr[k2][k3]..self.cache.addr[k2][k3] + v.len()] != v {
+                        if mem[self.cache.addr[k2][k3]
+                            ..self.cache.addr[k2][k3] + self.cache.input.len()]
+                            != self.cache.input
+                        {
                             self.cache.addr[k2].swap_remove(k3);
                             self.cache.addr[k2].shrink_to_fit();
                         }
@@ -128,62 +165,64 @@ impl ScanExt for Process {
                 });
         }
 
-        Ok(())
+        Ok(num)
     }
 
     fn print(&mut self) -> Result<()> {
-        let val = self
-            .cache
-            .addr
-            .iter()
-            .enumerate()
-            .map(|(k, v)| {
-                v.iter()
-                    .map(|a| a + self.cache.maps[k].start())
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-        val.iter()
-            .for_each(|f| f.iter().for_each(|x| println!("0x{:x}", x)));
-
         let mut num = 0;
         self.cache.addr.iter().for_each(|f| num += f.len());
-        println!("{}", num);
+        println!("总数 {}", num);
+
+        if num > 10 {
+            let mut n = 0;
+            'inner: for (av, v) in self.cache.addr.iter().zip(self.cache.maps.iter()) {
+                if !av.is_empty() {
+                    for k in 0..av.len() {
+                        println!("0x{:x}", av[k] + v.start());
+                        n += 1;
+                        if n == 10 {
+                            break 'inner;
+                        }
+                    }
+                }
+            }
+        } else {
+            self.cache.addr.iter().enumerate().for_each(|(k, v)| {
+                v.iter()
+                    .for_each(|a| println!("0x{:x}", a + self.cache.maps[k].start()))
+            });
+        }
 
         Ok(())
     }
 }
 
-impl MemExt for Process {
+impl MemExt for Linux {
     fn write(&self, addr: usize, payload: &[u8]) -> Result<usize> {
-        self.mem.write_at(payload, addr as u64)?;
+        self.proc.mem.write_at(payload, addr as u64)?;
         Ok(payload.len())
     }
 
     fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; size];
-        if let Err(e) = self.mem.read_at(&mut buf, addr as u64) {
-            println!("e: {}", e);
-        };
+        self.proc.mem.read_at(&mut buf, addr as u64)?;
         Ok(buf)
     }
 
     fn dump(&self, addr: usize, size: usize, path: &str) -> Result<usize> {
         let mut file = File::create(Path::new(path))?;
-        match self.read(addr, size) {
-            Ok(v) => file.write_all(&v)?,
-            Err(e) => return Err(e),
-        };
-        Ok(size)
+        let buf = self.read(addr, size)?;
+        file.write_all(&buf)?;
+        Ok(buf.len())
     }
 
     fn freeze(&self, addr: usize, payload: Vec<u8>) -> Result<()> {
-        let f = self.mem.try_clone()?;
+        let f = self.proc.mem.try_clone()?;
         std::thread::spawn(move || loop {
             if let Err(e) = f.write_at(&payload, addr as u64) {
                 println!("Error freeze addr 0x{:x} fail. {}", addr, e);
             };
-            sleep(Duration::from_millis(20));
+            sleep(Duration::from_millis(10));
         });
         Ok(())
     }
@@ -194,16 +233,16 @@ impl MemExt for Process {
     }
 }
 
-impl MapsExt for Process {
-    fn readmaps_all(&mut self) -> Result<Vec<MapRange>> {
-        let mut file = File::open(&self.maps)?;
+impl MapsExt for Linux {
+    fn region_lv0(&mut self) -> Result<Vec<MapRange>> {
+        let mut file = File::open(&self.proc.maps)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
         Ok(parse_proc_maps(&contents)?.into_iter().collect())
     }
 
-    fn readmaps_v1(&mut self) -> Result<Vec<MapRange>> {
-        let mut file = File::open(&self.maps)?;
+    fn region_lv1(&mut self) -> Result<Vec<MapRange>> {
+        let mut file = File::open(&self.proc.maps)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
         Ok(parse_proc_maps(&contents)?
@@ -215,20 +254,11 @@ impl MapsExt for Process {
             })
             .collect())
     }
-
-    fn getlibc_addr(&mut self) -> Result<usize> {
-        Ok(self
-            .readmaps_all()?
-            .into_iter()
-            .find(|m| m.pathname() == "/usr/lib/libc.so.6")
-            .ok_or(Error::PidNotFound)?
-            .start())
-    }
 }
 
-impl SyscallExt for Process {
+impl SyscallExt for Linux {
     fn get_ip(&mut self) -> Result<u64> {
-        let mut file = File::open(&self.syscall)?;
+        let mut file = File::open(&self.proc.syscall)?;
         let mut content = String::new();
         file.read_to_string(&mut content)?;
         Ok(u64::from_str_radix(
@@ -238,20 +268,25 @@ impl SyscallExt for Process {
     }
 }
 
-// TODO 移除goblin依赖，使用更好的方式组装payload
-impl InjectExt for Process {
+// https://github.com/DavidBuchanan314/dlinject
+impl InjectExt for Linux {
     fn inject(&mut self, lib_path: &str) -> Result<()> {
         if lib_path.chars().next().ok_or(Error::ArgsError)? != '/' {
             return Err(Error::ArgsError);
         }
-
         let buf = std::fs::read("/usr/lib/libc.so.6")?;
+
         let sym = Elf::parse(&buf)?
             .find_sym_by_name("__libc_dlopen_mode")
             .ok_or(Error::PidNotFound)?;
-        let dl = self.getlibc_addr()? as u64 + sym.st_value;
 
-        println!("0x{:x}", dl);
+        let dl = self
+            .region_lv0()?
+            .iter()
+            .find(|m| m.pathname() == "/usr/lib/libc.so.6")
+            .ok_or(Error::PidNotFound)?
+            .start() as u64
+            + sym.st_value;
 
         let ip = self.get_ip()?;
 
@@ -275,8 +310,8 @@ impl InjectExt for Process {
 
         let mut code = vec![0; p1.len()];
 
-        self.mem.read_exact_at(&mut code, ip)?;
-        self.mem.write_all_at(&p1, ip)?;
+        self.proc.mem.read_exact_at(&mut code, ip)?;
+        self.proc.mem.write_all_at(&p1, ip)?;
 
         // 0xff, 0x15, 0x0 debug
 
@@ -300,8 +335,8 @@ impl InjectExt for Process {
         p2.extend(lib_path.as_bytes());
         p2.extend([0]);
         p2.extend(dl.to_le_bytes());
-        let mut file = File::create(payload).unwrap();
-        let metadata = self.mem.metadata().unwrap();
+        let mut file = File::create(payload)?;
+        let metadata = self.proc.mem.metadata()?;
 
         fs::chown(payload, Some(metadata.uid()), Some(metadata.gid()))?;
         file.write_all(&p2)?;
@@ -310,7 +345,7 @@ impl InjectExt for Process {
     }
 }
 
-pub(crate) trait ElfExt {
+pub trait ElfExt {
     fn find_sym_by_name(&self, sym_name: &str) -> Option<Sym>;
 }
 

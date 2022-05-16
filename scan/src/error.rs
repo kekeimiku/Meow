@@ -3,13 +3,11 @@
 pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
-    SysCall(std::io::Error),
     ParseMapsError,
     ArgsError,
     PidNotFound,
-    ReadMemError,
-    WriteMemError,
-    MprotectError,
+    ReadMemError(String),
+    WriteMemError(String),
     ElfError(goblin::error::Error),
 }
 
@@ -19,11 +17,9 @@ impl std::fmt::Display for Error {
             Error::ParseIntError(e) => write!(f, "Parse error: {}", e),
             Error::IoError(e) => write!(f, "Io error: {}", e),
             Error::ParseMapsError => write!(f, "Parse maps error"),
-            Error::SysCall(e) => write!(f, "Syscall Error: {}", e),
             Error::PidNotFound => write!(f, "Pid not found"),
-            Error::ReadMemError => write!(f, "Read mem error"),
-            Error::WriteMemError => write!(f, "Write mem error"),
-            Error::MprotectError => write!(f, "Mprotect error"),
+            Error::ReadMemError(e) => write!(f, "Read mem error: {}", e),
+            Error::WriteMemError(e) => write!(f, "Write mem error: {}", e),
             Error::ArgsError => write!(f, "Args error"),
             Error::ElfError(e) => write!(f, "Elf Error: {}", e),
         }

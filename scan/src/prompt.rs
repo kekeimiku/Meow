@@ -1,9 +1,16 @@
-use std::{thread::sleep, time::Duration};
-
 use crate::{
     error::{Error, Result},
-    mem::{InjectExt, MemExt, Process, ScanExt},
+    mem::{InjectExt, Linux, MemExt, ScanExt},
 };
+
+macro_rules! merr {
+    ($m:expr,$ok:expr,$err:expr) => {
+        match $m {
+            Ok(v) => println!("$ok {:?}", v),
+            Err(e) => println!("$err {}", e),
+        }
+    };
+}
 
 pub fn prompt(name: &str) -> Result<Vec<String>> {
     let mut line = String::new();
@@ -22,35 +29,44 @@ pub fn start() -> Result<()> {
         .nth(1)
         .ok_or(Error::ArgsError)?
         .parse::<i32>()?;
-    let mut app = Process::new(pid).unwrap();
+    let mut app = Linux::new(pid).unwrap();
     loop {
-        sleep(Duration::from_millis(50));
         let prompt = prompt("> ")?;
         let input = prompt.iter().map(String::as_str).collect::<Vec<&str>>();
         if input.is_empty() {
             println!("参数为空");
         } else {
             match input[0] {
-                "find" => {
-                    let input_val = &input[1].parse::<i32>()?.to_le_bytes();
-                    app.cache.input = input_val.to_vec();
-                    app.scan()?;
+                "find" | "f" => {
+                    let val = &input[1].parse::<i32>()?.to_le_bytes();
+                    app.input(val);
+                    merr!(app.scan(), "搜索成功,总条数: ", "搜索失败: Error: ");
                 }
-                "status" => {
-                    app.scan()?;
+                "write" | "w" => {
+                    let addr = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
+                    let val = &input[2].parse::<i32>()?.to_le_bytes();
+                    merr!(
+                        app.write(addr, val),
+                        "写入成功,字节数: ",
+                        "写入失败: Error: "
+                    );
                 }
-                "p" => {
+                "read" | "r" => {
+                    let addr = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
+                    let size = &input[2].parse::<usize>()?;
+                    merr!(app.read(addr, *size), "", "Error: ");
+                }
+                "print" | "p" => {
                     app.print()?;
                 }
-                "inject" => {
+                "inject" | "inj" => {
                     let libpath = &input[1];
-                    dbg!(libpath);
-                    app.inject(libpath)?;
+                    merr!(app.inject(libpath), "注入成功", "注入失败,Error: ");
                 }
-                "w" => {
+                "lock" => {
                     let addr = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
-                    let input_val = &input[2].parse::<i32>()?.to_le_bytes();
-                    app.write(addr, input_val)?;
+                    let payload = &input[2].parse::<i32>()?.to_le_bytes();
+                    app.freeze(addr, payload.to_vec())?;
                 }
                 _ => {}
             }
