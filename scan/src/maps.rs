@@ -1,5 +1,15 @@
 use crate::error::{Error::ParseMapsError, Result};
 
+trait Region {
+    fn size(&self) -> usize;
+    fn start(&self) -> usize;
+    fn end(&self) -> usize;
+    fn pathname(&self) -> String;
+    fn is_read(&self) -> bool;
+    fn is_write(&self) -> bool;
+    fn is_exec(&self) -> bool;
+}
+
 #[derive(Debug)]
 pub struct MapRange {
     pub range_start: usize,
@@ -32,17 +42,6 @@ impl MapRange {
     }
     pub fn is_read(&self) -> bool {
         &self.flags[0..1] == "r"
-    }
-
-    pub fn exec(&self) -> String {
-        self.flags[2..3].to_string()
-    }
-
-    pub fn write(&self) -> String {
-        self.flags[1..2].to_string()
-    }
-    pub fn read(&self) -> String {
-        self.flags[0..1].to_string()
     }
 }
 

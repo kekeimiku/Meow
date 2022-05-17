@@ -17,18 +17,11 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
     print!("{}", name);
     std::io::Write::flush(&mut std::io::stdout())?;
     std::io::stdin().read_line(&mut line)?;
-    Ok(line
-        .replace('\n', "")
-        .split_whitespace()
-        .map(String::from)
-        .collect())
+    Ok(line.replace('\n', "").split_whitespace().map(String::from).collect())
 }
 
 pub fn start() -> Result<()> {
-    let pid = std::env::args()
-        .nth(1)
-        .ok_or(Error::ArgsError)?
-        .parse::<i32>()?;
+    let pid = std::env::args().nth(1).ok_or(Error::ArgsError)?.parse::<i32>()?;
     let mut app = Linux::new(pid).unwrap();
     loop {
         let prompt = prompt("> ")?;
@@ -45,11 +38,7 @@ pub fn start() -> Result<()> {
                 "write" | "w" => {
                     let addr = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
                     let val = &input[2].parse::<i32>()?.to_le_bytes();
-                    merr!(
-                        app.write(addr, val),
-                        "写入成功,字节数: ",
-                        "写入失败: Error: "
-                    );
+                    merr!(app.write(addr, val), "写入成功,字节数: ", "写入失败: Error: ");
                 }
                 "read" | "r" => {
                     let addr = usize::from_str_radix(&input[1].replace("0x", ""), 16)?;
