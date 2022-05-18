@@ -6,8 +6,8 @@ use crate::{
 macro_rules! merr {
     ($m:expr,$ok:expr,$err:expr) => {
         match $m {
-            Ok(v) => println!("$ok {:?}", v),
-            Err(e) => println!("$err {}", e),
+            Ok(v) => println!("{} {:?}", $ok, v),
+            Err(e) => println!("{} {}", $err, e),
         }
     };
 }

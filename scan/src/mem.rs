@@ -90,7 +90,7 @@ pub trait InjectExt {
 }
 
 pub trait ScanExt {
-    fn scan(&mut self) -> Result<usize>;
+    fn scan(&mut self) -> Result<()>;
     fn print(&mut self) -> Result<()>;
 }
 
@@ -109,7 +109,7 @@ macro_rules! schedule {
 }
 
 impl ScanExt for Linux {
-    fn scan(&mut self) -> Result<usize> {
+    fn scan(&mut self) -> Result<()> {
         let mut num = 0;
         if self.cache.addr.is_empty() {
             self.cache.maps = self.region_lv1()?.into_iter().collect::<Vec<MapRange>>();
@@ -149,7 +149,7 @@ impl ScanExt for Linux {
                 });
         }
 
-        Ok(num)
+        Ok(())
     }
 
     fn print(&mut self) -> Result<()> {
