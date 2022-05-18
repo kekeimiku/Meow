@@ -32,3 +32,11 @@ pub struct Cache {
     pub maps: Vec<MapRange>,
     pub addr: Vec<Vec<usize>>,
 }
+
+#[macro_export]
+macro_rules! schedule {
+    ($a:expr,$b:expr,$c:expr,$d:expr) => {
+        $a += 1;
+        println!("[{}/{}] scan 0x{:x}-0x{:x} ...", $a, $b, $c, $d);
+    };
+}

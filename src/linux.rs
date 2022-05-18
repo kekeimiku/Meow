@@ -26,6 +26,7 @@ use crate::ext::ScanExt;
 use crate::ext::SyscallExt;
 use crate::maps::parse_proc_maps;
 use crate::maps::MapRange;
+use crate::schedule;
 
 pub struct Linux {
     proc: Process,
@@ -71,13 +72,6 @@ pub struct Process {
     pub mem: File,
     pub maps: PathBuf,
     pub syscall: PathBuf,
-}
-
-macro_rules! schedule {
-    ($a:expr,$b:expr,$c:expr,$d:expr) => {
-        $a += 1;
-        println!("[{}/{}] scan 0x{:x}-0x{:x} ...", $a, $b, $c, $d);
-    };
 }
 
 impl ScanExt for Linux {

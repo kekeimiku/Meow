@@ -9,6 +9,9 @@ use crate::linux::Linux;
 #[cfg(target_os = "windows")]
 use crate::windows::Windows;
 
+#[cfg(target_os = "macos")]
+use crate::macos::Macos;
+
 macro_rules! merr {
     ($m:expr,$ok:expr,$err:expr) => {
         match $m {
@@ -33,6 +36,9 @@ pub fn start() -> Result<()> {
 
     #[cfg(target_os = "windows")]
     let mut app = Windows::new();
+
+    #[cfg(target_os = "macos")]
+    let mut app = Macos::new();
 
     loop {
         let prompt = prompt("> ")?;

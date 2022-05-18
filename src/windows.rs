@@ -7,6 +7,18 @@ use crate::{
 
 use crate::error::Result;
 
+#[derive(Default)]
+pub struct Windows {
+    pub proc: WinProc,
+    pub cache: Cache,
+}
+
+#[derive(Default)]
+pub struct WinProc {
+    pub pid: i32,
+    pub hprocess: HANDLE,
+}
+
 impl MemExt for Windows {
     fn write(&self, _addr: usize, _payload: &[u8]) -> Result<usize> {
         todo!()
@@ -50,30 +62,6 @@ impl MapsExt for Windows {
     }
 }
 
-#[derive(Default)]
-pub struct Windows {
-    pub proc: WinProc,
-    pub cache: Cache,
-}
-
-#[derive(Default)]
-pub struct WinProc {
-    hprocess: HANDLE,
-}
-
-impl Windows {
-    pub fn new() -> Self {
-        Self {
-            proc: WinProc { hprocess: 1 },
-            cache: Cache::default(),
-        }
-    }
-
-    pub fn input(&mut self, v: &[u8]) {
-        self.cache.input = v.to_vec()
-    }
-}
-
 impl ScanExt for Windows {
     fn scan(&mut self) -> Result<()> {
         todo!()
@@ -87,5 +75,18 @@ impl ScanExt for Windows {
 impl InjectExt for Windows {
     fn inject(&mut self, _lib_path: &str) -> Result<()> {
         todo!()
+    }
+}
+
+impl Windows {
+    pub fn new() -> Self {
+        Self {
+            proc: WinProc::default(),
+            cache: Cache::default(),
+        }
+    }
+
+    pub fn input(&mut self, v: &[u8]) {
+        self.cache.input = v.to_vec()
     }
 }

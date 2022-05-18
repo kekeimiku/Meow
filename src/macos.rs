@@ -50,4 +50,6 @@ impl ScanExt for Macos {
     }
 }
 
-impl Macos {}
+impl Macos {
+    pub fn new() -> Self { Self {  } }
+}
