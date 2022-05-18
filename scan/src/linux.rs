@@ -1,26 +1,31 @@
-use std::{
-    fs::{File, OpenOptions},
-    io::{Read, Write},
-    os::unix::{
-        fs,
-        prelude::{FileExt, MetadataExt},
-    },
-    path::{Path, PathBuf},
-    thread::sleep,
-    time::Duration,
-};
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::Read;
+use std::io::Write;
 
-use goblin::{
-    elf::{Elf, Sym, Symtab},
-    strtab::Strtab,
-};
+use std::os::unix::prelude::FileExt;
+use std::os::unix::prelude::MetadataExt;
+use std::path::Path;
+use std::path::PathBuf;
+use std::thread::sleep;
+use std::time::Duration;
 
+use goblin::elf::Elf;
+use goblin::elf::Sym;
+use goblin::elf::Symtab;
+use goblin::strtab::Strtab;
 use memchr::memmem::find_iter;
 
-use crate::{
-    error::{Error, Result},
-    maps::{parse_proc_maps, MapRange},
-};
+use crate::error::Error;
+use crate::error::Result;
+use crate::ext::Cache;
+use crate::ext::InjectExt;
+use crate::ext::MapsExt;
+use crate::ext::MemExt;
+use crate::ext::ScanExt;
+use crate::ext::SyscallExt;
+use crate::maps::parse_proc_maps;
+use crate::maps::MapRange;
 
 pub struct Linux {
     proc: Process,
@@ -66,39 +71,6 @@ pub struct Process {
     pub mem: File,
     pub maps: PathBuf,
     pub syscall: PathBuf,
-}
-
-pub trait MemExt {
-    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
-    fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>>;
-    fn dump(&self, addr: usize, size: usize, path: &str) -> Result<usize>;
-    fn freeze(&self, va: usize, payload: Vec<u8>) -> Result<()>;
-    fn unfreeze(&self, va: usize, payload: Vec<u8>) -> Result<()>;
-}
-
-pub trait MapsExt {
-    fn region_lv0(&mut self) -> Result<Vec<MapRange>>;
-    fn region_lv1(&mut self) -> Result<Vec<MapRange>>;
-}
-
-pub trait SyscallExt {
-    fn get_ip(&mut self) -> Result<u64>;
-}
-
-pub trait InjectExt {
-    fn inject(&mut self, lib_path: &str) -> Result<()>;
-}
-
-pub trait ScanExt {
-    fn scan(&mut self) -> Result<()>;
-    fn print(&mut self) -> Result<()>;
-}
-
-#[derive(Default)]
-struct Cache {
-    input: Vec<u8>,
-    maps: Vec<MapRange>,
-    addr: Vec<Vec<usize>>,
 }
 
 macro_rules! schedule {
@@ -316,7 +288,7 @@ impl InjectExt for Linux {
         let mut file = File::create(payload)?;
         let metadata = self.proc.mem.metadata()?;
 
-        fs::chown(payload, Some(metadata.uid()), Some(metadata.gid()))?;
+        std::os::unix::fs::chown(payload, Some(metadata.uid()), Some(metadata.gid()))?;
         file.write_all(&p2)?;
 
         Ok(())

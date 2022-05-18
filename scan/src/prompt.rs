@@ -1,7 +1,13 @@
 use crate::{
     error::{Error, Result},
-    mem::{InjectExt, Linux, MemExt, ScanExt},
+    ext::{InjectExt, MemExt, ScanExt},
 };
+
+#[cfg(target_os = "linux")]
+use crate::linux::Linux;
+
+#[cfg(target_os = "windows")]
+use crate::windows::Windows;
 
 macro_rules! merr {
     ($m:expr,$ok:expr,$err:expr) => {
@@ -22,7 +28,12 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
 
 pub fn start() -> Result<()> {
     let pid = std::env::args().nth(1).ok_or(Error::ArgsError)?.parse::<i32>()?;
+    #[cfg(target_os = "linux")]
     let mut app = Linux::new(pid).unwrap();
+
+    #[cfg(target_os = "windows")]
+    let mut app = Windows::new();
+
     loop {
         let prompt = prompt("> ")?;
         let input = prompt.iter().map(String::as_str).collect::<Vec<&str>>();

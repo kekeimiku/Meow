@@ -13,7 +13,12 @@ goblin = { version = "0.5.1", default-features = false, features = [
     "endian_fd",
 ] }
 
-# fastrand = "1.7.0"
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.36.1"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug"
+]
 
 [profile.dev]
 # strip = true
