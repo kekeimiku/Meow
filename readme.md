@@ -1,4 +1,4 @@
-跨平台内存扫描器 linux windows macos android/ios
+多平台内存扫描器 linux windows macos android/ios
 
 暂时业余时间瞎几把写中
 
