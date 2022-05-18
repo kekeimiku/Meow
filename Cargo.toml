@@ -1,38 +1,31 @@
 [package]
-name = "lince"
+name = "scan"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-# [lib]
-# name = "lince"
-# crate-type = ["cdylib"]
-
-[[bin]]
-bench = false
-path = "src/main.rs"
-name = "lince"
-
-# [[bench]]
-# name = "integration_bench"
-# path = "bench/benchs.rs"
-
-# [[test]]
-# name = "integration_test"
-# path = "tests/tests.rs"
-
 [dependencies]
 memchr = { version = "2", default-features = false }
-elf-lite = { path = "elf", version = "0.1.0", default-features = false, features = [
-    "64",
-    "32",
+goblin = { version = "0.5.1", default-features = false, features = [
+    "elf64",
+    "elf32",
+    "endian_fd",
 ] }
 
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.36.1"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug"
+]
+
+[profile.dev]
+# strip = true
+
 [profile.release]
+# debug = true
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-
-[profile.dev]

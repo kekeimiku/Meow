@@ -1,29 +1,34 @@
-linux（包括android）版 cheat engine （支持图形界面，web和命令行操作并且公开abi） 龟速开发中
+跨平台内存扫描器 linux windows macos android/ios
 
 暂时业余时间瞎几把写中
 
-距离可用还有很远的距离
+距离可用还有很远的距离，目前还比较混乱。。
 
-目前还比较混乱。。
+优先级先后顺序：linux android windows macos ios
 
-目录结构
+v0.1.1 功能列表 (暂时只有linux实现了):
 
-	`elf` 二进制文件解析器
-	
-	`decode` arm64反汇编器
+- 快速内存过滤
 
-	`memscan` 内存读写与模糊搜索
-	
-	`gui` 包含web gui tui
+- 内存写入
 
-	`inj` 注入器
+- 内存冻结
 
-	`...` 待定...
+- dump内存
+
+- 注入动态库
+
+目前拥有的功能：
+
+内存冻结和dump，以及兼顾cpu和内存占用低，并且性能非常好的内存过滤。
+
+![img2](img/file.gif)
+
+非常方便的直接注入so到目标进程。
+![img1](img/cnm.gif)
+
+如果有人想贡献代码，请注意，尽量不要再引入第三方库。
 
 ## Thanks for free JetBrains Open Source license
 
 <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." height="200"/>
-
-如果有人想贡献代码，请注意，不要出现任何unwrap,尽量不要引入第三方库，除了rust自身依赖的，目前本项目没有使用任何第三方库。
-
-只支持linux，之后或许会考虑mac。windows上面类似工具/甚至视频教程教你怎么写一个，已经多的烂大街了，就不考虑了。
