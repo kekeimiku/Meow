@@ -18,6 +18,12 @@ version = "0.5.1"
 default-features = false
 features = ["pe64", "pe32", "endian_fd"]
 
+[target.'cfg(macos)'.dependencies.goblin]
+version = "0.5.1"
+default-features = false
+features = ["mach64", "mach32", "endian_fd"]
+
+
 # [dependencies.windows-sys]
 # version = "0.36.1"
 # features = [
