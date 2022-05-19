@@ -54,12 +54,12 @@ pub fn start() -> Result<()> {
                     merr!(app.scan(), "搜索成功,总条数: ", "搜索失败: Error: ");
                 }
                 "write" | "w" => {
-                    let addr = hexstr_to_usize(&input[1])?;
+                    let addr = hexstr_to_usize(input[1])?;
                     let val = &input[2].parse::<i32>()?.to_le_bytes();
                     merr!(app.write(addr, val), "写入成功,字节数: ", "写入失败: Error: ");
                 }
                 "read" | "r" => {
-                    let addr = hexstr_to_usize(&input[1])?;
+                    let addr = hexstr_to_usize(input[1])?;
                     let size = &input[2].parse::<usize>()?;
                     merr!(app.read(addr, *size), "", "Error: ");
                 }
@@ -71,7 +71,7 @@ pub fn start() -> Result<()> {
                     merr!(app.inject(libpath), "注入成功", "注入失败,Error: ");
                 }
                 "lock" => {
-                    let addr = hexstr_to_usize(&input[1])?;
+                    let addr = hexstr_to_usize(input[1])?;
                     let payload = &input[2].parse::<i32>()?.to_le_bytes();
                     app.freeze(addr, payload.to_vec())?;
                 }

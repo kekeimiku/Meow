@@ -1,32 +1,23 @@
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::Read;
-use std::io::Write;
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+    os::unix::prelude::{FileExt, MetadataExt},
+    path::{Path, PathBuf},
+    thread::sleep,
+    time::Duration,
+};
 
-use std::os::unix::prelude::FileExt;
-use std::os::unix::prelude::MetadataExt;
-use std::path::Path;
-use std::path::PathBuf;
-use std::thread::sleep;
-use std::time::Duration;
-
-use goblin::elf::Elf;
-use goblin::elf::Sym;
-use goblin::elf::Symtab;
-use goblin::strtab::Strtab;
+use goblin::{
+    elf::{Elf, Sym, Symtab},
+    strtab::Strtab,
+};
 use memchr::memmem::find_iter;
 
-use crate::error::Error;
-use crate::error::Error::ParseMapsError;
-use crate::error::Result;
-use crate::ext::Cache;
-use crate::ext::InjectExt;
-use crate::ext::MapsExt;
-use crate::ext::MemExt;
-use crate::ext::Region;
-use crate::ext::ScanExt;
-use crate::ext::SyscallExt;
-use crate::schedule;
+use crate::{
+    error::{Error, Error::ParseMapsError, Result},
+    ext::{Cache, InjectExt, MapsExt, MemExt, Region, ScanExt, SyscallExt},
+    schedule,
+};
 
 pub struct Linux {
     proc: Process,
