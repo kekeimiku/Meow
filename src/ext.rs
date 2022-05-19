@@ -28,7 +28,7 @@ pub trait InjectExt {
 }
 
 pub trait ScanExt {
-    fn scan(&mut self) -> Result<()>;
+    fn scan(&mut self) -> Result<usize>;
     fn print(&mut self) -> Result<()>;
 }
 

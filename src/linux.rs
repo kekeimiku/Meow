@@ -130,8 +130,9 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<MapRange>> {
 }
 
 impl ScanExt for Linux {
-    fn scan(&mut self) -> Result<()> {
+    fn scan(&mut self) -> Result<usize> {
         let mut num = 0;
+        let mut retnum = 0;
         if self.cache.addr.is_empty() {
             self.cache.maps = self.region_lv1()?.into_iter().collect::<Vec<MapRange>>();
             self.cache.addr = self
@@ -170,13 +171,14 @@ impl ScanExt for Linux {
                 });
         }
 
-        Ok(())
+        self.cache.addr.iter().for_each(|f| retnum += f.len());
+
+        Ok(retnum)
     }
 
     fn print(&mut self) -> Result<()> {
         let mut num = 0;
         self.cache.addr.iter().for_each(|f| num += f.len());
-        println!("总数 {}", num);
 
         if num > 10 {
             let mut n = 0;

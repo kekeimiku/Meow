@@ -51,7 +51,7 @@ pub fn start() -> Result<()> {
                 "find" | "f" => {
                     let val = &input[1].parse::<i32>()?.to_le_bytes();
                     app.input(val);
-                    merr!(app.scan(), "搜索成功,总条数: ", "搜索失败: Error: ");
+                    merr!(app.scan(), "搜索成功, 搜索到值为*的地址数: ", "搜索失败: Error: ");
                 }
                 "write" | "w" => {
                     let addr = hexstr_to_usize(input[1])?;
