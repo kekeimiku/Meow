@@ -36,13 +36,14 @@ cargo +nightly build -Z build-std=std,panic_abort -Z build-std-features=panic_im
 
 ## help WIP
 ```shell
-./San -p 1234 //进程pid
-find 9999 //搜索一个值 9999
-find 9997 //这个值变成了 9997 后面find以此类推
-write 0x12345678 2333 //向地址0x12345678写入2333
-read 0x12345678 4   //读取0x12345678的四个字节
-lock 0x12345678 //冻结0x12345678当前的值
-inject path/test.so   //向当前进程注入test.so，需要绝对路径
+./San -p 1234  #进程pid
+find 9999  #搜索一个值 9999
+find 9997  #这个值变成了 9997 后面find以此类推
+write 0x12345678 2333  #向地址0x12345678写入2333
+read 0x12345678 4  #读取0x12345678的四个字节
+lock 0x12345678  #冻结0x12345678当前的值
+inject /path/test.so  #向当前进程注入test.so，需要绝对路径
+dump 0x12345678 10000 /path/file.dump  #dump 0x12345678处10000个字节到/path/file.dump，绝对路径
 ```
 
 ![img2](img/file.gif)

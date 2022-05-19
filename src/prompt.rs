@@ -1,6 +1,7 @@
 use crate::{
     error::{Error, Result},
-    ext::{InjectExt, MemExt, ScanExt}, utils::hexstr_to_usize,
+    ext::{InjectExt, MemExt, ScanExt},
+    utils::hexstr_to_usize,
 };
 
 #[cfg(target_os = "linux")]
@@ -73,6 +74,12 @@ pub fn start() -> Result<()> {
                     let addr = hexstr_to_usize(&input[1])?;
                     let payload = &input[2].parse::<i32>()?.to_le_bytes();
                     app.freeze(addr, payload.to_vec())?;
+                }
+                "dump" => {
+                    let addr = hexstr_to_usize(input[1])?;
+                    let size = input[2].parse::<usize>()?;
+                    let path = input[3];
+                    app.dump(addr, size, path)?;
                 }
                 _ => {}
             }
