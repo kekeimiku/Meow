@@ -285,7 +285,10 @@ impl InjectExt for Linux {
         if lib_path.chars().next().ok_or(Error::ArgsError)? != '/' {
             return Err(Error::ArgsError);
         }
-        let buf = std::fs::read("/usr/lib/libc.so.6")?;
+
+        let libc = "/usr/lib/libc.so.6";
+
+        let buf = std::fs::read(libc)?;
 
         let sym = Elf::parse(&buf)?
             .find_sym_by_name("__libc_dlopen_mode")
@@ -294,7 +297,7 @@ impl InjectExt for Linux {
         let dl = self
             .region_lv0()?
             .iter()
-            .find(|m| m.pathname() == "/usr/lib/libc.so.6")
+            .find(|m| m.pathname() == libc)
             .ok_or(Error::PidNotFound)?
             .start() as u64
             + sym.st_value;
