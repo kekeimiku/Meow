@@ -1,12 +1,12 @@
-## 多平台内存扫描器 linux windows macos android/ios
+## 快速多平台内存扫描器 linux windows macos android/ios
 
-暂时业余时间瞎几把写中
+暂时业余时间瞎几把写中，，
 
-距离可用还有很远的距离，目前还比较混乱。。
+## !!!wip
 
 优先级先后顺序：linux android windows macos ios
 
-v0.1.1 linux功能列表:
+v0.1.1 linux功能列表，不使用ptrace。:
 
 - 快速内存过滤
 
