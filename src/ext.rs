@@ -1,4 +1,10 @@
-use crate::{error::Result, maps::MapRange};
+use crate::error::Result;
+
+#[cfg(target_os = "windows")]
+use crate::windows::MapRange;
+
+#[cfg(target_os = "linux")]
+use crate::linux::MapRange;
 
 pub trait MemExt {
     fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
@@ -24,6 +30,16 @@ pub trait InjectExt {
 pub trait ScanExt {
     fn scan(&mut self) -> Result<()>;
     fn print(&mut self) -> Result<()>;
+}
+
+pub trait Region {
+    fn size(&self) -> usize;
+    fn start(&self) -> usize;
+    fn end(&self) -> usize;
+    fn pathname(&self) -> &String;
+    fn is_read(&self) -> bool;
+    fn is_write(&self) -> bool;
+    fn is_exec(&self) -> bool;
 }
 
 #[derive(Default)]

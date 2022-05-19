@@ -8,7 +8,10 @@ pub enum Error {
     PidNotFound,
     ReadMemError(String),
     WriteMemError(String),
+    #[cfg(target_os = "linux")]
     ElfError(goblin::error::Error),
+    #[cfg(target_os = "windows")]
+    WindowsError(windows::core::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -21,11 +24,22 @@ impl std::fmt::Display for Error {
             Error::ReadMemError(e) => write!(f, "Read mem error: {}", e),
             Error::WriteMemError(e) => write!(f, "Write mem error: {}", e),
             Error::ArgsError => write!(f, "Args error"),
+            #[cfg(target_os = "linux")]
             Error::ElfError(e) => write!(f, "Elf Error: {}", e),
+            #[cfg(target_os = "windows")]
+            Error::WindowsError(e) => write!(f, "Windows Error: {} ", e),
         }
     }
 }
 
+#[cfg(target_os = "windows")]
+impl From<windows::core::Error> for Error {
+    fn from(e: windows::core::Error) -> Self {
+        Error::WindowsError(e)
+    }
+}
+
+#[cfg(target_os = "linux")]
 impl From<goblin::error::Error> for Error {
     fn from(e: goblin::error::Error) -> Self {
         Error::ElfError(e)
