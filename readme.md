@@ -6,7 +6,7 @@
 
 优先级先后顺序：linux android windows macos ios
 
-v0.1.1 功能列表 (暂时只有linux实现了):
+v0.1.1 linux功能列表:
 
 - 快速内存过滤
 
