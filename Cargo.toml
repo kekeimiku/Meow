@@ -24,11 +24,14 @@ features = [
 
 
 [profile.dev]
-# strip = true
-
-[profile.release]
-# debug = true
 lto = true
 codegen-units = 1
 panic = "abort"
-strip = true
+# strip = true
+
+[profile.release]
+debug = true
+lto = true
+codegen-units = 1
+panic = "abort"
+# strip = true
