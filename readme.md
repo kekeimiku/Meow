@@ -6,7 +6,7 @@
 
 优先级先后顺序：linux android windows macos ios
 
-v0.1.1 linux功能列表，不使用ptrace。:
+v0.1.1 linux功能列表，所有功能都不需要依赖ptrace。:
 
 - 快速内存过滤
 
@@ -22,7 +22,7 @@ v0.1.1 linux功能列表，不使用ptrace。:
 
 内存冻结和dump，以及兼顾cpu和内存占用低，并且性能非常好的内存过滤。
 
-非常方便的直接注入so到目标进程(不用ptrace)。
+非常方便的直接注入so到目标进程。
 
 开始使用：
 
