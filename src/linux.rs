@@ -11,7 +11,7 @@ use goblin::{
     elf::{Elf, Sym, Symtab},
     strtab::Strtab,
 };
-use memchr::memmem::{find_iter};
+use memchr::memmem::find_iter;
 
 use crate::{
     error::{Error, Error::ParseMapsError, Result},
@@ -208,12 +208,10 @@ impl ScanExt for Linux {
         Ok(())
     }
 
-    // 未知值搜索，不知道具体数值，只知道值发生了某种变化。速度慢，占用内存多
     fn unknown_scan(&mut self) -> Result<usize> {
         todo!()
     }
 
-    // 变大的值
     fn value_more(&mut self) -> Result<usize> {
         find!(self,<);
         let mut retnum = 0;
@@ -221,7 +219,6 @@ impl ScanExt for Linux {
         Ok(retnum)
     }
 
-    // 变小的值
     fn value_less(&mut self) -> Result<usize> {
         find!(self,>);
         let mut retnum = 0;
@@ -229,32 +226,7 @@ impl ScanExt for Linux {
         Ok(retnum)
     }
 
-    // 发生任何变化的值
     fn value_change(&mut self) -> Result<usize> {
-        // (0..self.cache.addr.len()).rev().for_each(|k| {
-        //     if self.cache.addr[k].is_empty() {
-        //         self.cache.addr.swap_remove(k);
-        //         self.cache.maps.swap_remove(k);
-        //     }
-        // });
-        // let mut num = 0;
-        // (0..self.cache.maps.len())
-        //     .zip(0..self.cache.addr.len())
-        //     .for_each(|(k1, k2)| {
-        //         schedule!(num, self.cache.maps.len(), self.cache.maps[k1].start(), self.cache.maps[k1].end());
-        //         let mem = self
-        //             .read(self.cache.maps[k1].start(), self.cache.maps[k1].end() - self.cache.maps[k1].start())
-        //             .unwrap_or_default();
-        //         (0..self.cache.addr[k2].len()).rev().for_each(|k3| {
-        //             if &mem[self.cache.addr[k2][k3]..self.cache.addr[k2][k3] + self.cache.input.len()]
-        //                 > &self.cache.input
-        //             {
-        //                 self.cache.addr[k2].swap_remove(k3);
-        //                 self.cache.addr[k2].shrink_to_fit();
-        //             }
-        //         });
-        //     });
-
         find!(self,==);
         let mut retnum = 0;
         self.cache.addr.iter().for_each(|f| retnum += f.len());
