@@ -30,7 +30,7 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
     Ok(line.replace('\n', "").split_whitespace().map(String::from).collect())
 }
 
-// 吐了 TODO 等个好心人重构
+// 下面的代码很拉，实在懒得动了，草拟马破比交互界面耐心给我磨没了，有很多问题，懒得弄了。 TODO 等个好心人重构
 //
 macro_rules! input_scan {
     ($app:ident,$t:expr,$input:expr) => {
@@ -38,6 +38,63 @@ macro_rules! input_scan {
             println!("{}", e);
         } else {
             merr!($app.value_scan(), "搜索成功, 搜索到值为*的地址数: ", "搜索失败: Error: ");
+        }
+    };
+}
+macro_rules! input_scan1 {
+    ($app:ident,$t:expr,$input:expr) => {
+        if let Err(e) = $app.input($t, $input) {
+            println!("{}", e);
+        } else {
+            merr!($app.value_less(), "搜索成功, 值大于*的地址数: ", "搜索失败: Error: ");
+        }
+    };
+}
+
+macro_rules! input_scan2 {
+    ($app:ident,$t:expr,$input:expr) => {
+        if let Err(e) = $app.input($t, $input) {
+            println!("{}", e);
+        } else {
+            merr!($app.value_more(), "搜索成功, 值小于*的地址数: ", "搜索失败: Error: ");
+        }
+    };
+}
+
+macro_rules! match_input_type1 {
+    ($n1:expr,$n2:expr,$input:expr,$app:ident) => {
+        match $input[$n1] {
+            "u8" => input_scan1!($app, Type::U8, $input[$n2]),
+            "u16" => input_scan1!($app, Type::U16, $input[$n2]),
+            "u32" => input_scan1!($app, Type::U32, $input[$n2]),
+            "u64" => input_scan1!($app, Type::U64, $input[$n2]),
+            "i8" => input_scan1!($app, Type::I8, $input[$n2]),
+            "i16" => input_scan1!($app, Type::I16, $input[$n2]),
+            "i32" => input_scan1!($app, Type::I32, $input[$n2]),
+            "i64" => input_scan1!($app, Type::I64, $input[$n2]),
+            "str" => input_scan1!($app, Type::STR, $input[$n2]),
+            _ => {
+                input_scan!($app, Type::UNKNOWN, $input[$n1])
+            }
+        }
+    };
+}
+
+macro_rules! match_input_type2 {
+    ($n1:expr,$n2:expr,$input:expr,$app:ident) => {
+        match $input[$n1] {
+            "u8" => input_scan2!($app, Type::U8, $input[$n2]),
+            "u16" => input_scan2!($app, Type::U16, $input[$n2]),
+            "u32" => input_scan2!($app, Type::U32, $input[$n2]),
+            "u64" => input_scan2!($app, Type::U64, $input[$n2]),
+            "i8" => input_scan2!($app, Type::I8, $input[$n2]),
+            "i16" => input_scan2!($app, Type::I16, $input[$n2]),
+            "i32" => input_scan2!($app, Type::I32, $input[$n2]),
+            "i64" => input_scan2!($app, Type::I64, $input[$n2]),
+            "str" => input_scan2!($app, Type::STR, $input[$n2]),
+            _ => {
+                input_scan!($app, Type::UNKNOWN, $input[$n1])
+            }
         }
     };
 }
@@ -92,12 +149,10 @@ pub fn start() -> Result<()> {
                             "i64" => input_scan!(app, Type::I64, input[2]),
                             "str" => input_scan!(app, Type::STR, input[2]),
                             "<" => {
-                                match_input_type!(3, 4, input, app);
-                                merr!(app.value_less(), "搜索成功, 搜索到值为*的地址数: ", "搜索失败: Error: ");
+                                match_input_type1!(3, 4, input, app);
                             }
                             ">" => {
-                                match_input_type!(3, 4, input, app);
-                                merr!(app.value_more(), "搜索成功, 搜索到值为*的地址数: ", "搜索失败: Error: ");
+                                match_input_type2!(3, 4, input, app);
                             }
                             _ => {}
                         }

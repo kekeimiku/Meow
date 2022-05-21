@@ -60,6 +60,7 @@ impl Region for MapRange {
     }
 }
 
+// 草你妈煞笔windows怎么这么麻烦
 pub fn get_map_range(handle: HANDLE) -> Result<Vec<MapRange>> {
     let mut base: usize = 0;
     let mut regions = Vec::new();
@@ -95,6 +96,7 @@ impl MemExt for Windows {
         Ok(1)
     }
 
+    // 尼马的也不知道对不对，脑内测试吧
     fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; size];
         let ok =

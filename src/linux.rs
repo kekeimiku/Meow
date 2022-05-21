@@ -186,6 +186,8 @@ impl ScanExt for Linux {
         if self.cache.addr.is_empty() {
             let mut num = 0;
             self.cache.maps = self.region_lv1()?.into_iter().collect::<Vec<MapRange>>();
+
+            // 真是尼马离谱，TODO 让rustfmt不要给这个 self.cache.maps.iter 换行
             self.cache.addr = self
                 .cache
                 .maps
@@ -205,6 +207,7 @@ impl ScanExt for Linux {
         Ok(retnum)
     }
 
+    // TODO
     fn print(&mut self) -> Result<()> {
         let mut num = 0;
         self.cache.addr.iter().for_each(|f| num += f.len());
@@ -232,6 +235,7 @@ impl ScanExt for Linux {
         Ok(())
     }
 
+    // TODO 未知值搜索
     fn unknown_scan(&mut self) -> Result<usize> {
         todo!()
     }
@@ -403,6 +407,7 @@ impl InjectExt for Linux {
     }
 }
 
+// TODO 去掉这个煞笔依赖
 pub trait ElfExt {
     fn find_sym_by_name(&self, sym_name: &str) -> Option<Sym>;
 }
