@@ -1,4 +1,5 @@
 #![cfg_attr(target_os = "linux", feature(unix_chown))]
+#![feature(exclusive_range_pattern)]
 
 pub mod error;
 pub mod ext;

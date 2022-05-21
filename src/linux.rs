@@ -15,13 +15,19 @@ use memchr::memmem::find_iter;
 
 use crate::{
     error::{Error, Error::ParseMapsError, Result},
-    ext::{Cache, InjectExt, MapsExt, MemExt, Region, ScanExt, SyscallExt},
+    ext::{Cache, InjectExt, MapsExt, MemExt, Region, ScanExt, SyscallExt, Type},
     schedule,
 };
 
 pub struct Linux {
     proc: Process,
     cache: Cache,
+}
+
+macro_rules! input_type {
+    ($self:ident, $v:expr,$t:ty) => {
+        $self.cache.input = $v.parse::<$t>()?.to_le_bytes().to_vec()
+    };
 }
 
 impl Linux {
@@ -44,8 +50,30 @@ impl Linux {
         })
     }
 
-    pub fn input(&mut self, v: &[u8]) {
-        self.cache.input = v.to_vec()
+    pub fn input(&mut self, t: Type, v: &str) -> Result<()> {
+        match t {
+            Type::U8 => input_type!(self, v, u8),
+            Type::U16 => input_type!(self, v, u16),
+            Type::U32 => input_type!(self, v, u32),
+            Type::U64 => input_type!(self, v, u64),
+            Type::I8 => input_type!(self, v, i8),
+            Type::I16 => input_type!(self, v, i16),
+            Type::I32 => input_type!(self, v, i32),
+            Type::I64 => input_type!(self, v, i64),
+            Type::STR => self.cache.input = v.as_bytes().to_vec(),
+            Type::UNKNOWN => {
+                let num = v.parse::<isize>()?;
+                match num {
+                    -128..127 => input_type!(self, v, i8),
+                    -32768..32767 => input_type!(self, v, i16),
+                    -2147483648..2147483647 => input_type!(self, v, i32),
+                    -9223372036854775808..9223372036854775807 => input_type!(self, v, i64),
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub fn clear(&mut self) {

@@ -1,6 +1,6 @@
 use crate::{
     error::{Error, Result},
-    ext::{InjectExt, MemExt, ScanExt},
+    ext::{InjectExt, MemExt, ScanExt, Type},
     utils::hexstr_to_usize,
 };
 
@@ -49,8 +49,23 @@ pub fn start() -> Result<()> {
         } else {
             match input[0] {
                 "find" | "f" => {
-                    let val = &input[1].parse::<i32>()?.to_le_bytes();
-                    app.input(val);
+                    if input.len() > 2 {
+                        match input[1] {
+                            "u8" => app.input(Type::U8, input[2])?,
+                            "u16" => app.input(Type::U16, input[2])?,
+                            "u32" => app.input(Type::U32, input[2])?,
+                            "u64" => app.input(Type::U64, input[2])?,
+                            "i8" => app.input(Type::I8, input[2])?,
+                            "i16" => app.input(Type::I16, input[2])?,
+                            "i32" => app.input(Type::I32, input[2])?,
+                            "i64" => app.input(Type::I64, input[2])?,
+                            "str" => app.input(Type::STR, input[2])?,
+                            _ => {}
+                        }
+                    } else {
+                        app.input(Type::UNKNOWN, input[1])?;
+                    }
+
                     merr!(app.value_scan(), "搜索成功, 搜索到值为*的地址数: ", "搜索失败: Error: ");
                 }
                 "write" | "w" => {
