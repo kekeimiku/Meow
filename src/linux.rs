@@ -146,7 +146,7 @@ macro_rules! find {
                     .read($self.cache.maps[k1].start(), $self.cache.maps[k1].end() - $self.cache.maps[k1].start())
                     .unwrap_or_default();
                 (0..$self.cache.addr[k2].len()).rev().for_each(|k3| {
-                    if &mem[$self.cache.addr[k2][k3]..$self.cache.addr[k2][k3] + $self.cache.input.len()]
+                    if &mem[$self.cache.addr[k2][k3] as usize..$self.cache.addr[k2][k3] as usize + $self.cache.input.len()]
                         $op &$self.cache.input
                     {
                         $self.cache.addr[k2].swap_remove(k3);
@@ -169,6 +169,7 @@ impl ScanExt for Linux {
                 .map(|m| {
                     schedule!(num, self.cache.maps.len(), m.start(), m.end());
                     find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), &self.cache.input)
+                        .map(|f| f.try_into().unwrap())
                         .collect()
                 })
                 .collect();
@@ -190,7 +191,7 @@ impl ScanExt for Linux {
             'inner: for (av, v) in self.cache.addr.iter().zip(self.cache.maps.iter()) {
                 if !av.is_empty() {
                     for a in av.iter() {
-                        println!("0x{:x}", a + v.start());
+                        println!("0x{:x}", *a as usize + v.start());
                         n += 1;
                         if n == 10 {
                             break 'inner;
@@ -201,7 +202,7 @@ impl ScanExt for Linux {
         } else {
             self.cache.addr.iter().enumerate().for_each(|(k, v)| {
                 v.iter()
-                    .for_each(|a| println!("0x{:x}", a + self.cache.maps[k].start()))
+                    .for_each(|a| println!("0x{:x}", *a as usize + self.cache.maps[k].start()))
             });
         }
 

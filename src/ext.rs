@@ -28,7 +28,7 @@ pub trait InjectExt {
 }
 
 pub trait ScanExt {
-    fn value_scan(&mut self) -> Result<usize>;    
+    fn value_scan(&mut self) -> Result<usize>;
     fn value_more(&mut self) -> Result<usize>;
     fn value_less(&mut self) -> Result<usize>;
     fn value_change(&mut self) -> Result<usize>;
@@ -50,7 +50,7 @@ pub trait Region {
 pub struct Cache {
     pub input: Vec<u8>,
     pub maps: Vec<MapRange>,
-    pub addr: Vec<Vec<usize>>,
+    pub addr: Vec<Vec<u32>>,
 }
 
 #[macro_export]

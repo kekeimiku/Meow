@@ -49,7 +49,7 @@ pub fn start() -> Result<()> {
         } else {
             match input[0] {
                 "find" | "f" => {
-                    let val = &input[1].parse::<i32>()?.to_le_bytes();
+                    let val = &input[1].parse::<u8>()?.to_le_bytes();
                     app.input(val);
                     merr!(app.value_scan(), "搜索成功, 搜索到值为*的地址数: ", "搜索失败: Error: ");
                 }
