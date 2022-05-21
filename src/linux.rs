@@ -24,9 +24,9 @@ pub struct Linux {
     cache: Cache,
 }
 
-macro_rules! input_type {
-    ($self:ident, $v:expr,$t:ty) => {
-        $self.cache.input = $v.parse::<$t>()?.to_le_bytes().to_vec()
+macro_rules! typev {
+    ($v:expr,$t:ty) => {
+        $v.parse::<$t>()?.to_le_bytes().to_vec()
     };
 }
 
@@ -51,27 +51,23 @@ impl Linux {
     }
 
     pub fn input(&mut self, t: Type, v: &str) -> Result<()> {
-        match t {
-            Type::U8 => input_type!(self, v, u8),
-            Type::U16 => input_type!(self, v, u16),
-            Type::U32 => input_type!(self, v, u32),
-            Type::U64 => input_type!(self, v, u64),
-            Type::I8 => input_type!(self, v, i8),
-            Type::I16 => input_type!(self, v, i16),
-            Type::I32 => input_type!(self, v, i32),
-            Type::I64 => input_type!(self, v, i64),
-            Type::STR => self.cache.input = v.as_bytes().to_vec(),
+        self.cache.input = match t {
+            Type::U8 | Type::U16 | Type::U32 | Type::U64 => v.parse::<u64>()?.to_le_bytes()[0..t as usize].to_vec(),
+            Type::I8 | Type::I16 | Type::I32 | Type::I64 => {
+                v.parse::<i64>()?.to_le_bytes()[0..t as usize - 16].to_vec()
+            }
+            Type::STR => v.as_bytes().to_vec(),
             Type::UNKNOWN => {
                 let num = v.parse::<isize>()?;
                 match num {
-                    -128..127 => input_type!(self, v, i8),
-                    -32768..32767 => input_type!(self, v, i16),
-                    -2147483648..2147483647 => input_type!(self, v, i32),
-                    -9223372036854775808..9223372036854775807 => input_type!(self, v, i64),
-                    _ => {}
+                    -128..127 => typev!(v, i8),
+                    -32768..32767 => typev!(v, i16),
+                    -2147483648..2147483647 => typev!(v, i32),
+                    -9223372036854775808..9223372036854775807 => typev!(v, i64),
+                    _ => typev!(v, i32),
                 }
             }
-        }
+        };
 
         Ok(())
     }

@@ -54,14 +54,14 @@ pub struct Cache {
 }
 
 pub enum Type {
-    U8,
-    U16,
-    U32,
-    U64,
-    I8,
-    I16,
-    I32,
-    I64,
+    U8 = 1,
+    U16 = 2,
+    U32 = 4,
+    U64 = 8,
+    I8 = 16 + 1,
+    I16 = 16 + 2,
+    I32 = 16 + 4,
+    I64 = 16 + 8,
     STR,
     UNKNOWN,
 }
