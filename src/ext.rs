@@ -51,7 +51,10 @@ pub trait Region {
 pub struct Cache {
     pub input: Vec<u8>,
     pub maps: Vec<MapRange>,
-    pub addr: Vec<Vec<usize>>,
+    pub max:usize,
+    pub addr_u64: Vec<Vec<u64>>,
+    pub addr_u32: Vec<Vec<u32>>,
+    pub addr_u16: Vec<Vec<u16>>,
 }
 
 pub enum Type {

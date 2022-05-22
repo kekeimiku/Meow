@@ -73,10 +73,10 @@ impl Linux {
     }
 
     pub fn clear(&mut self) {
-        self.cache.addr.clear();
+        // self.cache.addr.clear();
         self.cache.maps.clear();
         self.cache.input.clear();
-        self.cache.addr.shrink_to_fit();
+        // self.cache.addr.shrink_to_fit();
         self.cache.maps.shrink_to_fit();
         self.cache.input.shrink_to_fit();
     }
@@ -153,84 +153,127 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<MapRange>> {
     Ok(vec)
 }
 
-macro_rules! find {
-    ($self:ident,$op:tt) => {
-        (0..$self.cache.addr.len()).rev().for_each(|k| {
-            if $self.cache.addr[k].is_empty() {
-                $self.cache.addr.swap_remove(k);
-                $self.cache.maps.swap_remove(k);
-            }
-        });
-        let mut num = 0;
-        (0..$self.cache.maps.len())
-            .zip(0..$self.cache.addr.len())
-            .for_each(|(k1, k2)| {
-                schedule!(num, $self.cache.maps.len(), $self.cache.maps[k1].start(), $self.cache.maps[k1].end());
-                let mem = $self
-                    .read($self.cache.maps[k1].start(), $self.cache.maps[k1].end() - $self.cache.maps[k1].start())
-                    .unwrap_or_default();
-                (0..$self.cache.addr[k2].len()).rev().for_each(|k3| {
-                    if &mem[$self.cache.addr[k2][k3]..$self.cache.addr[k2][k3] + $self.cache.input.len()]
-                        $op &$self.cache.input
-                    {
-                        $self.cache.addr[k2].swap_remove(k3);
-                        $self.cache.addr[k2].shrink_to_fit();
-                    }
-                });
-            });
-    };
-}
+// macro_rules! find {
+//     ($self:ident,$op:tt) => {
+//         (0..$self.cache.addr.len()).rev().for_each(|k| {
+//             if $self.cache.addr[k].is_empty() {
+//                 $self.cache.addr.swap_remove(k);
+//                 $self.cache.maps.swap_remove(k);
+//             }
+//         });
+//         let mut num = 0;
+//         (0..$self.cache.maps.len())
+//             .zip(0..$self.cache.addr.len())
+//             .for_each(|(k1, k2)| {
+//                 schedule!(num, $self.cache.maps.len(), $self.cache.maps[k1].start(), $self.cache.maps[k1].end());
+//                 let mem = $self
+//                     .read($self.cache.maps[k1].start(), $self.cache.maps[k1].end() - $self.cache.maps[k1].start())
+//                     .unwrap_or_default();
+//                 (0..$self.cache.addr[k2].len()).rev().for_each(|k3| {
+//                     if &mem[$self.cache.addr[k2][k3]..$self.cache.addr[k2][k3] + $self.cache.input.len()]
+//                         $op &$self.cache.input
+//                     {
+//                         $self.cache.addr[k2].swap_remove(k3);
+//                         $self.cache.addr[k2].shrink_to_fit();
+//                     }
+//                 });
+//             });
+//     };
+// }
 
 impl ScanExt for Linux {
     fn value_scan(&mut self) -> Result<usize> {
-        if self.cache.addr.is_empty() {
+        if self.cache.addr_u16.is_empty() && self.cache.addr_u32.is_empty() && self.cache.addr_u64.is_empty() {
             let mut num = 0;
             self.cache.maps = self.region_lv1()?.into_iter().collect::<Vec<MapRange>>();
-
-            // 真是尼马离谱，TODO 让rustfmt不要给这个 self.cache.maps.iter 换行
-            self.cache.addr = self
-                .cache
+            self.cache
                 .maps
                 .iter()
-                .map(|m| {
-                    schedule!(num, self.cache.maps.len(), m.start(), m.end());
-                    find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), &self.cache.input)
-                        .collect()
-                })
-                .collect();
+                .for_each(|f| self.cache.max += f.end() - f.start());
+
+            match self.cache.max {
+                0..65535 => {
+                    self.cache.addr_u16 = self
+                        .cache
+                        .maps
+                        .iter()
+                        .map(|m| {
+                            schedule!(num, self.cache.maps.len(), m.start(), m.end());
+                            find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), &self.cache.input)
+                                .map(|x| x.try_into().unwrap())
+                                .collect()
+                        })
+                        .collect();
+                }
+                65536..4294967295 => {
+                    self.cache.addr_u32 = self
+                        .cache
+                        .maps
+                        .iter()
+                        .map(|m| {
+                            schedule!(num, self.cache.maps.len(), m.start(), m.end());
+                            find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), &self.cache.input)
+                                .map(|x| x.try_into().unwrap())
+                                .collect()
+                        })
+                        .collect();
+                    let mut a = 0;
+                    self.cache.addr_u32.iter().for_each(|x| a += x.len());
+                    println!("u32数量:{}", a)
+                }
+                4294967296..18446744073709551615 => {
+                    self.cache.addr_u64 = self
+                        .cache
+                        .maps
+                        .iter()
+                        .map(|m| {
+                            schedule!(num, self.cache.maps.len(), m.start(), m.end());
+                            find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), &self.cache.input)
+                                .map(|x| x.try_into().unwrap())
+                                .collect()
+                        })
+                        .collect();
+                    let mut a = 0;
+                    self.cache.addr_u64.iter().for_each(|x| a += x.len());
+                    println!("数量：{}", a)
+                }
+                _ => {}
+            }
         } else {
-            find!(self,!=);
+            // find!(self,!=);
         }
 
         let mut retnum = 0;
-        self.cache.addr.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
         Ok(retnum)
     }
 
     // TODO
     fn print(&mut self) -> Result<()> {
-        let mut num = 0;
-        self.cache.addr.iter().for_each(|f| num += f.len());
+        // let mut num = 0;
+        // self.cache.addr.iter().for_each(|f| num += f.len());
 
-        if num > 10 {
-            let mut n = 0;
-            'inner: for (av, v) in self.cache.addr.iter().zip(self.cache.maps.iter()) {
-                if !av.is_empty() {
-                    for a in av.iter() {
-                        println!("0x{:x}", a + v.start());
-                        n += 1;
-                        if n == 10 {
-                            break 'inner;
-                        }
-                    }
-                }
-            }
-        } else {
-            self.cache.addr.iter().enumerate().for_each(|(k, v)| {
-                v.iter()
-                    .for_each(|a| println!("0x{:x}", a + self.cache.maps[k].start()))
-            });
-        }
+        // if num > 10 {
+        //     let mut n = 0;
+        //     'inner: for (av, v) in self.cache.addr.iter().zip(self.cache.maps.iter()) {
+        //         if !av.is_empty() {
+        //             for a in av.iter() {
+        //                 println!("0x{:x}", a + v.start());
+        //                 n += 1;
+        //                 if n == 10 {
+        //                     break 'inner;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // } else {
+        //     self.cache.addr.iter().enumerate().for_each(|(k, v)| {
+        //         v.iter()
+        //             .for_each(|a| println!("0x{:x}", a + self.cache.maps[k].start()))
+        //     });
+        // }
 
         Ok(())
     }
@@ -241,23 +284,113 @@ impl ScanExt for Linux {
     }
 
     fn value_more(&mut self) -> Result<usize> {
-        find!(self,<);
+        match self.cache.max {
+            0..65535 => {
+                (0..self.cache.addr_u16.len()).rev().for_each(|k| {
+                    if self.cache.addr_u16[k].is_empty() {
+                        self.cache.addr_u16.swap_remove(k);
+                        self.cache.maps.swap_remove(k);
+                    }
+                });
+                // self.cache.max = 0;
+                // self.cache.maps.iter().for_each(|f| self.cache.max += f.start());
+                let mut num = 0;
+                (0..self.cache.maps.len())
+                    .zip(0..self.cache.addr_u16.len())
+                    .for_each(|(k1, k2)| {
+                        schedule!(num, self.cache.maps.len(), self.cache.maps[k1].start(), self.cache.maps[k1].end());
+                        let mem = self
+                            .read(self.cache.maps[k1].start(), self.cache.maps[k1].end() - self.cache.maps[k1].start())
+                            .unwrap_or_default();
+                        (0..self.cache.addr_u16[k2].len()).rev().for_each(|k3| {
+                            if &mem[self.cache.addr_u16[k2][k3] as usize
+                                ..self.cache.addr_u16[k2][k3] as usize + self.cache.input.len()]
+                                < &self.cache.input
+                            {
+                                self.cache.addr_u16[k2].swap_remove(k3);
+                                self.cache.addr_u16[k2].shrink_to_fit();
+                            }
+                        });
+                    });
+            }
+            65535..4294967295 => {
+                (0..self.cache.addr_u32.len()).rev().for_each(|k| {
+                    if self.cache.addr_u32[k].is_empty() {
+                        self.cache.addr_u32.swap_remove(k);
+                        self.cache.maps.swap_remove(k);
+                    }
+                });
+                self.cache.maps.iter().for_each(|f| self.cache.max += f.start());
+                let mut num = 0;
+                (0..self.cache.maps.len())
+                    .zip(0..self.cache.addr_u32.len())
+                    .for_each(|(k1, k2)| {
+                        schedule!(num, self.cache.maps.len(), self.cache.maps[k1].start(), self.cache.maps[k1].end());
+                        let mem = self
+                            .read(self.cache.maps[k1].start(), self.cache.maps[k1].end() - self.cache.maps[k1].start())
+                            .unwrap_or_default();
+                        (0..self.cache.addr_u32[k2].len()).rev().for_each(|k3| {
+                            if &mem[self.cache.addr_u32[k2][k3] as usize
+                                ..self.cache.addr_u32[k2][k3] as usize + self.cache.input.len()]
+                                < &self.cache.input
+                            {
+                                self.cache.addr_u32[k2].swap_remove(k3);
+                                self.cache.addr_u32[k2].shrink_to_fit();
+                            }
+                        });
+                    });
+            }
+            4294967296..18446744073709551615 => {}
+
+            _ => {}
+        }
+        // (0..self.cache.addr.len()).rev().for_each(|k| {
+        //     if self.cache.addr[k].is_empty() {
+        //         self.cache.addr.swap_remove(k);
+        //         self.cache.maps.swap_remove(k);
+        //     }
+        // });
+        // let mut num = 0;
+        // (0..self.cache.maps.len())
+        //     .zip(0..self.cache.addr.len())
+        //     .for_each(|(k1, k2)| {
+        //         schedule!(num, self.cache.maps.len(), self.cache.maps[k1].start(), self.cache.maps[k1].end());
+        //         let mem = self
+        //             .read(self.cache.maps[k1].start(), self.cache.maps[k1].end() - self.cache.maps[k1].start())
+        //             .unwrap_or_default();
+        //         (0..self.cache.addr[k2].len()).rev().for_each(|k3| {
+        //             if &mem[self.cache.addr[k2][k3]..self.cache.addr[k2][k3] + self.cache.input.len()]
+        //                 < &self.cache.input
+        //             {
+        //                 self.cache.addr[k2].swap_remove(k3);
+        //                 self.cache.addr[k2].shrink_to_fit();
+        //             }
+        //         });
+        //     });
+
+        // find!(self,<);
         let mut retnum = 0;
-        self.cache.addr.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
         Ok(retnum)
     }
 
     fn value_less(&mut self) -> Result<usize> {
-        find!(self,>);
+        // find!(self,>);
         let mut retnum = 0;
-        self.cache.addr.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
         Ok(retnum)
     }
 
     fn value_change(&mut self) -> Result<usize> {
-        find!(self,==);
+        // find!(self,==);
         let mut retnum = 0;
-        self.cache.addr.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
         Ok(retnum)
     }
 }
