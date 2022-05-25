@@ -45,7 +45,7 @@ pub fn start() -> Result<()> {
 
     loop {
         if let Err(e) = cmd(&mut app) {
-            println!("{}",e);
+            println!("{}", e);
         }
     }
 }
@@ -59,7 +59,8 @@ fn cmd(app: &mut Linux) -> Result<()> {
         match input[0] {
             "find" | "f" => {
                 app.input(Type::U8, input[1])?;
-                app.value_scan()?;
+                let num = app.value_scan()?;
+                println!("{}", num)
             }
             "write" | "w" => {
                 let addr = hexstr_to_usize(input[1])?;

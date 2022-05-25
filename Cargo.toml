@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 memchr = { version = "2", default-features = false }
+# log = { version = "0.4.17", features = ["release_max_level_off"] }
 
 [target.'cfg(unix)'.dependencies.goblin]
 version = "0.5.1"
@@ -19,17 +20,16 @@ features = [
     "Win32_System_Diagnostics_Debug",
     "Win32_Foundation",
     "Win32_System_Threading",
-    "Win32_System_Memory"
+    "Win32_System_Memory",
 ]
-
-
-[profile.dev]
-debug = true
-lto = true
-codegen-units = 1
 
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[profile.dev]
+debug = true
+lto = true
+codegen-units = 1
