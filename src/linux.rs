@@ -388,7 +388,8 @@ impl SyscallExt for Linux {
     }
 }
 
-// glibc我草你妈，尼马比你瞎鸡巴改尼马的__libc_dlopen_mode，握草尼马的，怎么不给你妈放glibc里栓起来呢呢，草，给你妈放出来
+// glibc我草你妈，尼马比你瞎鸡巴改尼马的__libc_dlopen_mode，握草尼马的，
+// 怎么不给你妈放glibc里栓起来呢呢，草，给你妈放出来
 // todo 由于glibc的瞎b更新此功能在2.34版本以上失效
 impl InjectExt for Linux {
     fn inject(&mut self, lib_path: &str) -> Result<()> {
