@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 memchr = { version = "2", default-features = false }
-# log = { version = "0.4.17", features = ["release_max_level_off"] }
 
 [target.'cfg(unix)'.dependencies.goblin]
 version = "0.5.1"

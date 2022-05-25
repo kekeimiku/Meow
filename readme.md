@@ -1,8 +1,8 @@
 ## 快速多平台内存扫描器 linux windows macos android/ios
 
-暂时业余时间瞎几把写中，，
+> **开发中** 暂时业余时间瞎几把写中，，
 
-## !!!wip
+## ⚠️ wip
 
 优先级先后顺序：linux android windows macos ios
 

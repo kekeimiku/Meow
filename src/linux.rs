@@ -296,7 +296,7 @@ impl ScanExt for Linux {
         // find!(self,<,addr_u64);
         let mut retnum = 0;
         self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
-        self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
         self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
         Ok(retnum)
     }
@@ -305,7 +305,7 @@ impl ScanExt for Linux {
         // find!(self,>);
         let mut retnum = 0;
         self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
-        self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
         self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
         Ok(retnum)
     }
@@ -314,7 +314,7 @@ impl ScanExt for Linux {
         // find!(self,==);
         let mut retnum = 0;
         self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
-        self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
+        self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
         self.cache.addr_u64.iter().for_each(|f| retnum += f.len());
         Ok(retnum)
     }
@@ -388,7 +388,8 @@ impl SyscallExt for Linux {
     }
 }
 
-// https://github.com/DavidBuchanan314/dlinject
+// glibc我草你妈，尼马比你瞎鸡巴改尼马的__libc_dlopen_mode，握草尼马的，怎么不给你妈放glibc里栓起来呢呢，草，给你妈放出来
+// todo 由于glibc的瞎b更新此功能在2.34版本以上失效
 impl InjectExt for Linux {
     fn inject(&mut self, lib_path: &str) -> Result<()> {
         if lib_path.chars().next().ok_or(Error::ArgsError)? != '/' {
@@ -402,6 +403,8 @@ impl InjectExt for Linux {
         let sym = Elf::parse(&buf)?
             .find_sym_by_name("__libc_dlopen_mode")
             .ok_or(Error::PidNotFound)?;
+
+        println!("================ {}",sym.st_value);
 
         let dl = self
             .region_lv0()?
