@@ -9,3 +9,5 @@ Cargo.lock
 .idea/
 .projectile
 .dir-locals.el
+/dockertest
+.vscode

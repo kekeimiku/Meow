@@ -3,31 +3,23 @@
 pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
-    ParseMapsError,
-    ArgsError,
-    PidNotFound,
-    ReadMemError(String),
-    WriteMemError(String),
     #[cfg(target_os = "linux")]
     ElfError(goblin::error::Error),
     #[cfg(target_os = "windows")]
-    WindowsError(windows::core::Error),
+    Windows(windows::core::Error),
+    New(String),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::ParseIntError(e) => write!(f, "Parse error: {}", e),
+            Error::ParseIntError(e) => write!(f, "Parse int error: {}", e),
             Error::IoError(e) => write!(f, "Io error: {}", e),
-            Error::ParseMapsError => write!(f, "Parse maps error"),
-            Error::PidNotFound => write!(f, "Pid not found"),
-            Error::ReadMemError(e) => write!(f, "Read mem error: {}", e),
-            Error::WriteMemError(e) => write!(f, "Write mem error: {}", e),
-            Error::ArgsError => write!(f, "Args error"),
             #[cfg(target_os = "linux")]
             Error::ElfError(e) => write!(f, "Elf Error: {}", e),
             #[cfg(target_os = "windows")]
             Error::WindowsError(e) => write!(f, "Windows Error: {} ", e),
+            Error::New(e) => write!(f, "Error: {} ", e),
         }
     }
 }

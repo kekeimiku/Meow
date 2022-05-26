@@ -1,11 +1,13 @@
 use std::{
     fs::{File, OpenOptions},
     io::{Read, Write},
-    os::unix::prelude::{FileExt, MetadataExt},
+    os::unix::prelude::FileExt,
     path::{Path, PathBuf},
     thread::sleep,
     time::Duration,
 };
+
+use std::{collections::HashMap, mem::size_of};
 
 use goblin::{
     elf::{Elf, Sym, Symtab},
@@ -15,7 +17,7 @@ use goblin::{
 use memchr::memmem::find_iter;
 
 use crate::{
-    error::{Error, Error::ParseMapsError, Result},
+    error::{Error, Result},
     ext::{Cache, InjectExt, MapsExt, MemExt, Region, ScanExt, SyscallExt, Type},
     schedule,
 };
@@ -127,19 +129,21 @@ impl Region for MapRange {
 
 pub fn parse_proc_maps(contents: &str) -> Result<Vec<MapRange>> {
     let mut vec: Vec<MapRange> = Vec::new();
+    let e = || Error::New("failed to parse maps".into());
     for line in contents.split('\n') {
         let mut split = line.split_whitespace();
         let range = split.next();
         if range.is_none() {
             break;
         }
-        let mut range_split = range.ok_or(ParseMapsError)?.split('-');
-        let range_start = range_split.next().ok_or(ParseMapsError)?;
-        let range_end = range_split.next().ok_or(ParseMapsError)?;
-        let flags = split.next().ok_or(ParseMapsError)?;
-        let offset = split.next().ok_or(ParseMapsError)?;
-        let dev = split.next().ok_or(ParseMapsError)?;
-        let inode = split.next().ok_or(ParseMapsError)?;
+
+        let mut range_split = range.ok_or_else(e)?.split('-');
+        let range_start = range_split.next().ok_or_else(e)?;
+        let range_end = range_split.next().ok_or_else(e)?;
+        let flags = split.next().ok_or_else(e)?;
+        let offset = split.next().ok_or_else(e)?;
+        let dev = split.next().ok_or_else(e)?;
+        let inode = split.next().ok_or_else(e)?;
 
         vec.push(MapRange {
             range_start: usize::from_str_radix(range_start, 16)?,
@@ -228,7 +232,7 @@ macro_rules! print_abs {
 
 impl ScanExt for Linux {
     fn value_scan(&mut self) -> Result<usize> {
-        if self.cache.addr_u16.is_empty() && self.cache.addr_u64.is_empty() && self.cache.addr_u64.is_empty() {
+        if self.cache.addr_u16.is_empty() && self.cache.addr_u32.is_empty() && self.cache.addr_u64.is_empty() {
             self.cache.maps = self.region_lv1()?.into_iter().collect::<Vec<MapRange>>();
             self.cache
                 .maps
@@ -384,74 +388,45 @@ impl SyscallExt for Linux {
         let mut file = File::open(&self.proc.syscall)?;
         let mut content = String::new();
         file.read_to_string(&mut content)?;
-        Ok(u64::from_str_radix(content.trim().rsplit_once('x').ok_or(Error::PidNotFound)?.1, 16)?)
+        Ok(u64::from_str_radix(
+            content
+                .trim()
+                .rsplit_once('x')
+                .ok_or_else(|| Error::New("failed to get syscall ip".into()))?
+                .1,
+            16,
+        )?)
     }
 }
 
 impl InjectExt for Linux {
     fn inject(&mut self, lib_path: &str) -> Result<()> {
-        if lib_path.chars().next().ok_or(Error::ArgsError)? != '/' {
-            return Err(Error::ArgsError);
+        if !lib_path.starts_with('/') {
+            return Err(Error::New("absolute path is required".into()));
         }
 
-        let libc = "/usr/lib/libc.so.6";
-
-        let buf = std::fs::read(libc)?;
-
-        let sym = Elf::parse(&buf)?.find_sym_by_name("dlopen").ok_or(Error::PidNotFound)?;
-
-        println!("================ {}", sym.st_value);
-
-        let dl = self
+        let libc = self
             .region_lv0()?
-            .iter()
-            .find(|m| m.pathname() == libc)
-            .ok_or(Error::PidNotFound)?
-            .start() as u64
-            + sym.st_value;
+            .into_iter()
+            .find(|m| m.pathname().contains("libc.so.6"))
+            .ok_or_else(|| Error::New("libc not found".into()))?;
+
+        // find dlopen address
+        let buf = std::fs::read(libc.pathname())?;
+        let sym = Elf::parse(&buf)?
+            .find_sym_by_name("dlopen")
+            .ok_or_else(|| Error::New("dlopen symbol not found".into()))?;
 
         let ip = self.get_ip()?;
 
-        let path = "/tmp/b8b7a4b6-6214-40b1.bin";
-
-        let mut p1: Vec<u8> = vec![
-            0x50, 0x53, 0x51, 0x52, 0x55, 0x56, 0x57, 0x41, 0x50, 0x41, 0x51, 0x41, 0x52, 0x41, 0x53, 0x41, 0x54, 0x41,
-            0x55, 0x41, 0x56, 0x41, 0x57, 0x48, 0xc7, 0xc0, 0x2, 0x0, 0x0, 0x0, 0x48, 0x8d, 0x3d, 0x64, 0x0, 0x0, 0x0,
-            0x48, 0xc7, 0xc6, 0x0, 0x0, 0x0, 0x0, 0x48, 0xc7, 0xc2, 0x0, 0x0, 0x0, 0x0, 0xf, 0x5, 0x49, 0x89, 0xc6,
-            0x48, 0xc7, 0xc0, 0x9, 0x0, 0x0, 0x0, 0x48, 0xc7, 0xc7, 0x0, 0x0, 0x0, 0x0, 0x48, 0xc7, 0xc6, 0x0, 0x2,
-            0x0, 0x0, 0x48, 0xc7, 0xc2, 0x5, 0x0, 0x0, 0x0, 0x49, 0xc7, 0xc2, 0x2, 0x0, 0x0, 0x0, 0x4d, 0x89, 0xf0,
-            0x49, 0xc7, 0xc1, 0x0, 0x0, 0x0, 0x0, 0xf, 0x5, 0x49, 0x89, 0xc7, 0x48, 0xc7, 0xc0, 0x3, 0x0, 0x0, 0x0,
-            0x4c, 0x89, 0xf7, 0xf, 0x5, 0x48, 0xc7, 0xc0, 0x57, 0x0, 0x0, 0x0, 0x48, 0x8d, 0x3d, 0x5, 0x0, 0x0, 0x0,
-            0xf, 0x5, 0x41, 0xff, 0xe7,
-        ];
-        p1.extend(path.as_bytes());
-        p1.extend([0]);
+        let path = "/tmp/lib.so";
+        let p1 = p1_x64(path);
         let mut buf = vec![0; p1.len()];
-
         self.proc.mem.read_exact_at(&mut buf, ip)?;
         self.proc.mem.write_all_at(&p1, ip)?;
 
-        // 0xff, 0x15, 0x0 debug
-        // 0xff, 0x15, 0x32 release
+        let p2 = p2_x64(&buf, ip, lib_path, libc.start() as u64 + sym.st_value);
 
-        let mut p2 = vec![
-            0x48, 0xc7, 0xc0, 0x2, 0x0, 0x0, 0x0, 0x48, 0x8d, 0x3d, 0x7b, 0x0, 0x0, 0x0, 0x48, 0xc7, 0xc6, 0x2, 0x0,
-            0x0, 0x0, 0x48, 0xc7, 0xc2, 0x0, 0x0, 0x0, 0x0, 0xf, 0x5, 0x49, 0x89, 0xc7, 0x48, 0xc7, 0xc0, 0x12, 0x0,
-            0x0, 0x0, 0x4c, 0x89, 0xff, 0x48, 0x8d, 0x35, 0x66, 0x0, 0x0, 0x0, 0x48, 0x8b, 0x15, 0x4, 0x1, 0x0, 0x0,
-            0x4c, 0x8b, 0x15, 0x5, 0x1, 0x0, 0x0, 0xf, 0x5, 0x48, 0xc7, 0xc0, 0x3, 0x0, 0x0, 0x0, 0x4c, 0x89, 0xff,
-            0xf, 0x5, 0x48, 0x89, 0xe5, 0x48, 0x83, 0xe4, 0xf0, 0x48, 0x8d, 0x3d, 0xf1, 0x0, 0x0, 0x0, 0x48, 0xc7,
-            0xc6, 0x1, 0x0, 0x0, 0x0, 0xff, 0x15, 0x32, 0x1, 0x0, 0x0, 0x48, 0x89, 0xec, 0x41, 0x5f, 0x41, 0x5e, 0x41,
-            0x5d, 0x41, 0x5c, 0x41, 0x5b, 0x41, 0x5a, 0x41, 0x59, 0x41, 0x58, 0x5f, 0x5e, 0x5d, 0x5a, 0x59, 0x5b, 0x58,
-            0xff, 0x25, 0xbc, 0x0, 0x0, 0x0, 0x2f, 0x70, 0x72, 0x6f, 0x63, 0x2f, 0x73, 0x65, 0x6c, 0x66, 0x2f, 0x6d,
-            0x65, 0x6d, 0x0,
-        ];
-
-        p2.extend(&buf);
-        p2.extend((buf.len() as u64).to_le_bytes());
-        p2.extend(ip.to_le_bytes());
-        p2.extend(lib_path.as_bytes());
-        p2.extend([0]);
-        p2.extend(dl.to_le_bytes());
         let mut file = File::create(path)?;
         file.write_all(&p2)?;
 
@@ -459,7 +434,6 @@ impl InjectExt for Linux {
     }
 }
 
-// TODO 去掉这个煞笔依赖
 pub trait ElfExt {
     fn find_sym_by_name(&self, sym_name: &str) -> Option<Sym>;
 }
@@ -479,4 +453,185 @@ impl<'a> ElfExt for Elf<'a> {
 
         iter(&self.syms, &self.strtab).or_else(|| iter(&self.dynsyms, &self.dynstrtab))
     }
+}
+
+////////
+/// 参考: https://github.com/DavidBuchanan314/dlinject && https://github.com/vfsfitvnm/intruducer 修改
+
+#[derive(Default)]
+pub struct Asm<T: Encodable<U>, const U: usize> {
+    buf: Vec<u8>,
+    relocs: Vec<(usize, T)>,
+    labels: HashMap<Label, usize>,
+}
+
+impl<T: Encodable<U>, const U: usize> Asm<T, U> {
+    pub fn new() -> Self {
+        Asm {
+            buf: Default::default(),
+            relocs: Default::default(),
+            labels: Default::default(),
+        }
+    }
+
+    pub fn align<const A: usize>(mut self) -> Self {
+        while self.buf.len() % A != 0 {
+            self.buf.push(0);
+        }
+        self
+    }
+
+    pub fn ascii(self, str: &str) -> Self {
+        self.bytes(str.as_bytes())
+    }
+
+    pub fn asciiz(self, str: &str) -> Self {
+        self.ascii(str).bytes(&[0])
+    }
+
+    pub fn bytes(mut self, bytes: &[u8]) -> Self {
+        self.buf.extend(bytes);
+        self
+    }
+
+    pub fn word(self, word: u16) -> Self {
+        self.bytes(&word.to_le_bytes())
+    }
+
+    pub fn dword(self, dword: u32) -> Self {
+        self.bytes(&dword.to_le_bytes())
+    }
+
+    pub fn qword(self, qword: u64) -> Self {
+        self.bytes(&qword.to_le_bytes())
+    }
+
+    pub fn op(mut self, op: T) -> Self {
+        self.buf.extend(op.enc(0, &self.labels));
+        self
+    }
+
+    pub fn label(mut self, label: Label) -> Self {
+        self.labels.insert(label, self.buf.len());
+        self
+    }
+
+    pub fn build(mut self) -> Vec<u8> {
+        for (index, op) in self.relocs {
+            for (j, byte) in op.enc(index, &self.labels).iter().enumerate() {
+                self.buf[index + j] = *byte;
+            }
+        }
+
+        self.buf
+    }
+}
+
+pub trait Encodable<const T: usize> {
+    fn res_lab(lab: Label, labs: &HashMap<Label, usize>, instr_offset: usize) -> i32 {
+        let offset = labs.get(lab).unwrap_or_else(|| panic!("Couldn't find label {}", lab));
+
+        Self::calc_offset(instr_offset.try_into().unwrap(), (*offset).try_into().unwrap())
+    }
+
+    fn calc_offset(instr_offset: i32, label_offset: i32) -> i32;
+
+    fn enc(self, offset: usize, labels: &HashMap<Label, usize>) -> [u8; T];
+}
+
+pub type Label = &'static str;
+
+pub enum Op {
+    Placeholder,
+    Refl(Label),
+}
+
+impl Encodable<4> for Op {
+    fn enc(self, instr_offset: usize, labels: &HashMap<Label, usize>) -> [u8; 4] {
+        match self {
+            Op::Refl(label) => Self::res_lab(label, labels, instr_offset),
+            Op::Placeholder => 0,
+        }
+        .to_le_bytes()
+    }
+
+    fn calc_offset(instr_offset: i32, label_offset: i32) -> i32 {
+        label_offset - instr_offset - size_of::<i32>() as i32
+    }
+}
+
+impl TinyAsm {
+    pub fn instr<const T: usize>(mut self, bytes: [u8; T]) -> Self {
+        self.buf.extend(bytes);
+        self
+    }
+
+    pub fn instr_with_ref<const T: usize>(mut self, bytes: [u8; T], label: Label) -> Self {
+        self.buf.extend(bytes);
+        self.relocs.push((self.buf.len(), Op::Refl(label)));
+        self.op(Op::Placeholder)
+    }
+}
+
+pub type TinyAsm = Asm<Op, 4>;
+
+//////
+
+fn p1_x64(path: &str) -> Vec<u8> {
+    TinyAsm::new()
+        .instr([
+            0x50, 0x53, 0x51, 0x52, 0x55, 0x56, 0x57, 0x41, 0x50, 0x41, 0x51, 0x41, 0x52, 0x41, 0x53, 0x41, 0x54, 0x41,
+            0x55, 0x41, 0x56, 0x41, 0x57, 0x48, 0xc7, 0xc0, 0x02, 0x00, 0x00, 0x00,
+        ])
+        .instr_with_ref([0x48, 0x8d, 0x3d], "path")
+        .instr([
+            0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0xc2, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x05, 0x49, 0x89,
+            0xc6, 0x48, 0xc7, 0xc0, 0x09, 0x00, 0x00, 0x00, 0x48, 0xc7, 0xc7, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0xc6,
+            0x00, 0x02, 0x00, 0x00, 0x48, 0xc7, 0xc2, 0x05, 0x00, 0x00, 0x00, 0x49, 0xc7, 0xc2, 0x02, 0x00, 0x00, 0x00,
+            0x4d, 0x89, 0xf0, 0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x05, 0x49, 0x89, 0xc7, 0x48, 0xc7, 0xc0,
+            0x03, 0x00, 0x00, 0x00, 0x4c, 0x89, 0xf7, 0x0f, 0x05, 0x48, 0xc7, 0xc0, 0x57, 0x00, 0x00, 0x00,
+        ])
+        .instr_with_ref([0x48, 0x8d, 0x3d], "path")
+        .instr([0x0f, 0x05, 0x41, 0xff, 0xe7])
+        .label("path")
+        .asciiz(path)
+        .build()
+}
+
+fn p2_x64(code: &[u8], ip: u64, lib_path: &str, dlopen: u64) -> Vec<u8> {
+    TinyAsm::new()
+        .instr([0x48, 0xc7, 0xc0, 0x02, 0x00, 0x00, 0x00])
+        .instr_with_ref([0x48, 0x8d, 0x3d], "mem_path")
+        .instr([
+            0x48, 0xc7, 0xc6, 0x02, 0x00, 0x00, 0x00, 0x48, 0xc7, 0xc2, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x05, 0x49, 0x89,
+            0xc7, 0x48, 0xc7, 0xc0, 0x12, 0x00, 0x00, 0x00, 0x4c, 0x89, 0xff,
+        ])
+        .instr_with_ref([0x48, 0x8d, 0x35], "code")
+        .instr_with_ref([0x48, 0x8b, 0x15], "code_len")
+        .instr_with_ref([0x4c, 0x8b, 0x15], "ip")
+        .instr([
+            0x0f, 0x05, 0x48, 0xc7, 0xc0, 0x03, 0x00, 0x00, 0x00, 0x4c, 0x89, 0xff, 0x0f, 0x05, 0x48, 0x89, 0xe5, 0x48,
+            0x83, 0xe4, 0xf0,
+        ])
+        .instr_with_ref([0x48, 0x8d, 0x3d], "lib_path")
+        .instr([0x48, 0xc7, 0xc6, 0x01, 0x00, 0x00, 0x00])
+        .instr_with_ref([0xff, 0x15], "dlopen")
+        .instr([
+            0x48, 0x89, 0xec, 0x41, 0x5f, 0x41, 0x5e, 0x41, 0x5d, 0x41, 0x5c, 0x41, 0x5b, 0x41, 0x5a, 0x41, 0x59, 0x41,
+            0x58, 0x5f, 0x5e, 0x5d, 0x5a, 0x59, 0x5b, 0x58,
+        ])
+        .instr_with_ref([0xff, 0x25], "ip")
+        .label("mem_path")
+        .asciiz("/proc/self/mem")
+        .label("code")
+        .bytes(code)
+        .label("code_len")
+        .qword(code.len().try_into().unwrap())
+        .label("ip")
+        .qword(ip)
+        .label("lib_path")
+        .asciiz(lib_path)
+        .label("dlopen")
+        .qword(dlopen)
+        .build()
 }

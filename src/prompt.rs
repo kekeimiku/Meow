@@ -33,7 +33,10 @@ macro_rules! merr {
 }
 
 pub fn start() -> Result<()> {
-    let pid = std::env::args().nth(1).ok_or(Error::ArgsError)?.parse::<u32>()?;
+    let pid = std::env::args()
+        .nth(1)
+        .ok_or_else(|| Error::New("parm error".into()))?
+        .parse::<u32>()?;
     #[cfg(target_os = "linux")]
     let mut app = Linux::new(pid)?;
 
