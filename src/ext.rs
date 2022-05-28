@@ -55,6 +55,7 @@ pub struct Cache {
     pub addr_u64: Vec<Vec<u64>>,
     pub addr_u32: Vec<Vec<u32>>,
     pub addr_u16: Vec<Vec<u16>>,
+    pub val_cache: Vec<Vec<Vec<u8>>>,
 }
 
 pub enum Type {

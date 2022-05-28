@@ -61,9 +61,12 @@ fn cmd(app: &mut Linux) -> Result<()> {
     } else {
         match input[0] {
             "find" | "f" => {
-                app.input(Type::U8, input[1])?;
+                app.input(Type::I32, input[1])?;
                 let num = app.value_scan()?;
                 println!("{}", num)
+            }
+            "<"=>{
+                app.value_less()?;
             }
             "write" | "w" => {
                 let addr = hexstr_to_usize(input[1])?;
