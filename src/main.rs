@@ -1,7 +1,5 @@
-use scan::prompt::start;
+use meow::prompt::start;
 
 fn main() {
-    if let Err(err) = start() {
-        println!("Error: {}", err)
-    }
+    start().unwrap()
 }
