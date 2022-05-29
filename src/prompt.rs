@@ -7,12 +7,6 @@ use crate::{
 #[cfg(target_os = "linux")]
 use crate::linux::Linux;
 
-#[cfg(target_os = "windows")]
-use crate::windows::Windows;
-
-#[cfg(target_os = "macos")]
-use crate::macos::Macos;
-
 pub fn prompt(name: &str) -> Result<Vec<String>> {
     let mut line = String::new();
     print!("{}", name);

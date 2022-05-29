@@ -259,7 +259,6 @@ impl ScanExt for Linux {
                                 .collect()
                         })
                         .collect();
-                    (0..self.cache.addr_u32.len()).for_each(|_| self.cache.val_cache.push(Vec::default()));
                 }
                 4294967296..18446744073709551615 => {
                     // value_sacan!(self, addr_u64);
@@ -328,7 +327,6 @@ impl ScanExt for Linux {
                 if self.cache.addr_u32[k].is_empty() {
                     self.cache.addr_u32.swap_remove(k);
                     self.cache.maps.swap_remove(k);
-                    self.cache.val_cache.swap_remove(k);
                 }
             });
 
@@ -346,51 +344,11 @@ impl ScanExt for Linux {
                         if val >= &self.cache.input {
                             self.cache.addr_u32[k2].swap_remove(k3);
                             self.cache.addr_u32[k2].shrink_to_fit();
-                        } else {
-                            self.cache.val_cache[k2].push(val.to_vec());
                         }
                     });
                 });
             self.flag = 2;
-        } else {
-            println!("< else");
-            (0..self.cache.addr_u32.len()).rev().for_each(|k| {
-                if self.cache.addr_u32[k].is_empty() {
-                    self.cache.addr_u32.swap_remove(k);
-                    self.cache.maps.swap_remove(k);
-                    self.cache.val_cache.swap_remove(k);
-                }
-            });
-
-            let mut num = 0;
-            (0..self.cache.maps.len())
-                .zip(0..self.cache.addr_u32.len())
-                .for_each(|(k1, k2)| {
-                    schedule!(num, self.cache.maps.len(), self.cache.maps[k1].start(), self.cache.maps[k1].end());
-                    let mem = self
-                        .read(self.cache.maps[k1].start(), self.cache.maps[k1].end() - self.cache.maps[k1].start())
-                        .unwrap_or_default();
-                    (0..self.cache.addr_u32[k2].len()).rev().for_each(|k3| {
-                        let val = &mem[self.cache.addr_u32[k2][k3] as usize
-                            ..self.cache.addr_u32[k2][k3] as usize + self.cache.input.len()];
-
-                        println!("val {:?}", val);
-                        println!("val_cache {:?}", &self.cache.val_cache[k2][k3]);
-                        println!("flag {}",self.flag);
-                        println!("{} {}", k2, k3);
-                        println!("addr {}",self.cache.addr_u32[k2][k3]);
-
-                        if val >= &self.cache.val_cache[k2][k3] {
-                            self.cache.addr_u32[k2].swap_remove(k3);
-                            self.cache.addr_u32[k2].shrink_to_fit();
-                            self.cache.val_cache[k2].swap_remove(k3);
-                            self.cache.val_cache[k2].shrink_to_fit();
-                        }
-                    });
-                });
-        }
-
-        println!("{:?}", self.cache.addr_u32);
+        }        
         let mut retnum = 0;
         self.cache.addr_u16.iter().for_each(|f| retnum += f.len());
         self.cache.addr_u32.iter().for_each(|f| retnum += f.len());
