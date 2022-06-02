@@ -1,46 +1,32 @@
-use std::{mem, ops::Range};
+use std::ops::Range;
 
-use crate::maps::MapRange;
-
-
-// 一个比较省内存的数据结构，感谢 Lonami
+// 尽量减少 Vec<usize> 的内存占用
 #[derive(Debug)]
-pub enum CandidateLocations {
-    Discrete { locations: Vec<usize> },
-    SmallDiscrete { base: usize, offsets: Vec<u16> },
+pub enum VecMinValue {
+    Orig { vec: Vec<usize> },
     Dense { range: Range<usize>, step: usize },
-    Sparse { base: usize, mask: Vec<bool>, scale: usize },
+    SmallOffset { base: usize, offsets: Vec<u16> },
+    BigOffset { base: usize, offsets: Vec<u32> },
+    Small { vec: Vec<u16> },
+    Big { vec: Vec<u32> },
 }
 
-impl CandidateLocations {
-    pub fn len(&self) -> usize {
-        match self {
-            CandidateLocations::Discrete { locations } => locations.len(),
-            CandidateLocations::SmallDiscrete { offsets, .. } => offsets.len(),
-            CandidateLocations::Dense { range, step } => range.len() / step,
-            CandidateLocations::Sparse { mask, .. } => mask.iter().filter(|x| **x).count(),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub fn try_compact(&mut self, value_size: usize) {
-        let locations = match self {
-            CandidateLocations::Discrete { locations } if locations.len() >= 2 => mem::take(locations),
+impl VecMinValue {
+    pub fn compact(&mut self) {
+        let vec = match self {
+            VecMinValue::Orig { vec } if vec.len() >= 2 => core::mem::take(vec),
             _ => return,
         };
 
-        let low = *locations.first().unwrap();
-        let high = *locations.last().unwrap();
+        let low = *vec.first().unwrap();
+        let high = *vec.last().unwrap();
         let size = high - low;
-        let size_for_aligned = size / value_size;
 
-        if size <= u16::MAX as _ && locations.len() * mem::size_of::<u16>() < size_for_aligned {
-            *self = CandidateLocations::SmallDiscrete {
+        // 判断是否可以把大于 u16max 的地址以base + offset Vec<u16> 储存
+        if size <= u16::MAX as _ {
+            *self = VecMinValue::SmallOffset {
                 base: low,
-                offsets: locations
+                offsets: vec
                     .into_iter()
                     .map(|loc| (loc - low).try_into().unwrap())
                     .collect(),
@@ -48,58 +34,104 @@ impl CandidateLocations {
             return;
         }
 
-        if size_for_aligned < locations.len() * mem::size_of::<usize>() {
-            assert_eq!(low % value_size, 0);
-
-            let mut locations = locations.into_iter();
-            let mut next_set = locations.next();
-            *self = CandidateLocations::Sparse {
-                base: low,
-                mask: (low..high)
-                    .step_by(value_size)
-                    .map(|addr| {
-                        if Some(addr) == next_set {
-                            next_set = locations.next();
-                            true
-                        } else {
-                            false
-                        }
-                    })
-                    .collect(),
-                scale: value_size,
+        // 判断是否可以把小于 u16max 的地址以Vec<u16>储存
+        if high <= u16::MAX as _ {
+            *self = VecMinValue::Small {
+                vec: vec.iter().map(|&v| v.try_into().unwrap()).collect(),
             };
             return;
         }
 
-        *self = CandidateLocations::Discrete { locations };
+        // 判断是否可以把大于 u32max 的地址以base + offset Vec<u32> 储存
+        if size <= u32::MAX as _ {
+            *self = VecMinValue::BigOffset {
+                base: low,
+                offsets: vec
+                    .into_iter()
+                    .map(|loc| (loc - low).try_into().unwrap())
+                    .collect(),
+            };
+            return;
+        }
+
+        // 判断是否可以把小于 u32max 的地址以Vec<u32>储存
+        if high <= u32::MAX as _ {
+            *self = VecMinValue::Big {
+                vec: vec.iter().map(|&v| v.try_into().unwrap()).collect(),
+            };
+            return;
+        }
+
+        // 以上都不行，原样储存 Vec<usize>
+        *self = VecMinValue::Orig { vec }
     }
 
-    pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = usize> + 'a> {
+    // 获取MineVecValue的长度
+    pub fn len(&self) -> usize {
         match self {
-            CandidateLocations::Discrete { locations } => Box::new(locations.iter().copied()),
-            CandidateLocations::SmallDiscrete { base, offsets } => {
-                Box::new(offsets.iter().map(move |&offset| base + offset as usize))
-            }
-            CandidateLocations::Dense { range, step } => Box::new(range.clone().step_by(*step)),
-            CandidateLocations::Sparse { base, mask, scale } => Box::new(
-                mask.iter()
-                    .enumerate()
-                    .filter(|(_, &set)| set)
-                    .map(move |(i, _)| base + i * scale),
-            ),
+            VecMinValue::Orig { vec } => vec.len(),
+            VecMinValue::Dense { range, step } => range.len() / step,
+            VecMinValue::SmallOffset { offsets, .. } => offsets.len(),
+            VecMinValue::BigOffset { offsets, .. } => offsets.len(),
+            VecMinValue::Small { vec } => vec.len(),
+            VecMinValue::Big { vec } => vec.len(),
         }
     }
-}
 
-#[derive(Debug)]
-pub struct Region {
-    pub info: MapRange,
-    pub locations: CandidateLocations,
-    pub value: Value,
-}
+    // MineVecValue 为空
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
-#[derive(Debug)]
-pub enum Value {
-    Exact(Vec<u8>),
-    AnyWithin { memory: Vec<u8>, size: usize },
+    pub fn shrink_to_fit(&mut self) {
+        match self {
+            VecMinValue::Orig { vec } => vec.shrink_to_fit(),
+            VecMinValue::Dense { .. } => {}
+            VecMinValue::SmallOffset { base: _, offsets } => offsets.shrink_to_fit(),
+            VecMinValue::BigOffset { base: _, offsets } => offsets.shrink_to_fit(),
+            VecMinValue::Small { vec } => vec.shrink_to_fit(),
+            VecMinValue::Big { vec } => vec.shrink_to_fit(),
+        }
+    }
+
+    // 删除一些元素
+    pub fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&usize) -> bool,
+    {
+        match self {
+            VecMinValue::Orig { vec } => {
+                vec.retain_mut(|elem| f(elem));
+            }
+            VecMinValue::Dense { .. } => {}
+            VecMinValue::SmallOffset { base, offsets } => {
+                offsets.retain_mut(|elem| f(&(*elem as usize + *base)));
+            }
+            VecMinValue::BigOffset { base, offsets } => {
+                offsets.retain_mut(|elem| f(&(*elem as usize + *base)));
+            }
+            VecMinValue::Small { vec } => {
+                vec.retain_mut(|elem| f(&(*elem as usize)));
+            }
+            VecMinValue::Big { vec } => {
+                vec.retain_mut(|elem| f(&(*elem as usize)));
+            }
+        }
+    }
+
+    // 返回计算usize的迭代器 Vec<usize>
+    pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = usize> + 'a> {
+        match self {
+            VecMinValue::Orig { vec } => Box::new(vec.iter().copied()),
+            VecMinValue::Dense { range, step } => Box::new(range.clone().step_by(*step)),
+            VecMinValue::SmallOffset { base, offsets } => {
+                Box::new(offsets.iter().map(move |&offset| base + offset as usize))
+            }
+            VecMinValue::BigOffset { base, offsets } => {
+                Box::new(offsets.iter().map(move |&offset| base + offset as usize))
+            }
+            VecMinValue::Small { vec } => Box::new(vec.iter().map(move |&v| v as usize)),
+            VecMinValue::Big { vec } => Box::new(vec.iter().map(move |&v| v as usize)),
+        }
+    }
 }

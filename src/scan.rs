@@ -9,7 +9,7 @@ use crate::{
     error::Result,
     maps::{MapRange, MapsExt},
     mem::MemExt,
-    region::{CandidateLocations, Region},
+    region::VecMinValue,
 };
 
 pub struct Process {
@@ -26,8 +26,9 @@ pub struct Scan {
 
 #[derive(Default, Debug)]
 pub struct Cache {
-    pub region: Vec<Region>,
+    pub region: Vec<VecMinValue>,
     pub maps: Vec<MapRange>,
+    pub flag: u8,
 }
 
 impl Scan {
@@ -50,40 +51,54 @@ impl Scan {
     }
 
     pub fn scan(&mut self, value: &[u8]) -> Result<()> {
-        self.cache.maps = self.region_lv1()?;
+        if self.cache.flag == 0 {
+            self.cache.maps = self.region_lv1()?;
+            for m in self.cache.maps.iter() {
+                let mut vec = VecMinValue::Orig {
+                    // TODO 减少搜索过程中的内存占用
+                    vec: find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), value)
+                        .collect::<Vec<_>>(),
+                };
+                vec.compact();
+                self.cache.region.push(vec)
+            }
 
-        for m in self.cache.maps.iter() {
-            let mut location = CandidateLocations::Discrete {
-                // TODO 减少搜索过程中的内存占用
-                locations: find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), value).collect(),
-            };
+            self.cache.flag = 1;
 
-            location.try_compact(value.len());
+            let mut num = 0;
+            self.cache.region.iter_mut().for_each(|x| {
+                num += x.len();
+            });
 
-            self.cache.region.push(Region {
-                info: m.clone(),
-                locations: location,
-                value: crate::region::Value::Exact(value.to_vec()),
-            })
+            println!("num {}", num);
+        } else {
+            (0..self.cache.region.len()).for_each(|k1| {
+                let mem = self
+                    .read(
+                        self.cache.maps[k1].start(),
+                        self.cache.maps[k1].end() - self.cache.maps[k1].start(),
+                    )
+                    .unwrap_or_default();
+                self.cache.region[k1].retain(|&a| &mem[a..a + value.len()] == value)
+            });
         }
 
         Ok(())
     }
 
-    pub fn rescan(&mut self, _value: &[u8]) -> Result<()> {
-        let mut reg = self.cache.region.iter();
-        for _ in 0..self.cache.region.len() {
-            let rn = reg.next().unwrap();
-            let mut offset = rn.locations.iter();
-            let map = &rn.info;
-            let _mem = self.read(map.start(), map.end() - map.start()).unwrap_or_default();
-            let _i = offset.next().unwrap_or_default();
+    pub fn print(&self) {
+        let mut num = 0;
+        (0..self.cache.region.len()).for_each(|k| {
+            println!(
+                "{:x?}",
+                self.cache.region[k]
+                    .iter()
+                    .map(|x| x + self.cache.maps[k].start())
+                    .collect::<Vec<_>>()
+            );
+            num += self.cache.region[k].len();
+        });
 
-            // if &mem[i..i + value.len()] == value {
-            //     println!("0x{:x}", i + map.start());
-            // }
-        }
-
-        Ok(())
+        println!("总数 {}", num);
     }
 }

@@ -8,7 +8,11 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
     print!("{}", name);
     std::io::Write::flush(&mut std::io::stdout())?;
     std::io::stdin().read_line(&mut line)?;
-    Ok(line.replace('\n', "").split_whitespace().map(String::from).collect())
+    Ok(line
+        .replace('\n', "")
+        .split_whitespace()
+        .map(String::from)
+        .collect())
 }
 
 pub fn start() -> Result<()> {
@@ -29,20 +33,14 @@ fn cmd(app: &mut Scan) -> Result<()> {
     let prompt = prompt("> ")?;
     let input = prompt.iter().map(String::as_str).collect::<Vec<&str>>();
     if input.is_empty() {
-        println!("参数为空");
+        println!("parm is empty");
     } else {
         match input[0] {
             "find" | "f" => {
                 app.scan(&input[1].parse::<i32>()?.to_le_bytes())?;
-                // let mut num = 0;
-                // for i in &app.cache.region {
-                //     num += i.locations.len();
-                // }
-
-                // println!("{}", num);
             }
-            "re" => {
-                app.rescan(&input[1].parse::<i32>()?.to_le_bytes())?;
+            "p" => {
+                app.print();
             }
             _ => {}
         }
