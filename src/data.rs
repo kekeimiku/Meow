@@ -1,10 +1,7 @@
-use std::ops::Range;
-
 // 尽量减少 Vec<usize> 的内存占用
 #[derive(Debug)]
 pub enum VecMinValue {
     Orig { vec: Vec<usize> },
-    Dense { range: Range<usize>, step: usize },
     SmallOffset { base: usize, offsets: Vec<u16> },
     BigOffset { base: usize, offsets: Vec<u32> },
     Small { vec: Vec<u16> },
@@ -70,7 +67,6 @@ impl VecMinValue {
     pub fn len(&self) -> usize {
         match self {
             VecMinValue::Orig { vec } => vec.len(),
-            VecMinValue::Dense { range, step } => range.len() / step,
             VecMinValue::SmallOffset { offsets, .. } => offsets.len(),
             VecMinValue::BigOffset { offsets, .. } => offsets.len(),
             VecMinValue::Small { vec } => vec.len(),
@@ -86,7 +82,6 @@ impl VecMinValue {
     pub fn shrink_to_fit(&mut self) {
         match self {
             VecMinValue::Orig { vec } => vec.shrink_to_fit(),
-            VecMinValue::Dense { .. } => {}
             VecMinValue::SmallOffset { base: _, offsets } => offsets.shrink_to_fit(),
             VecMinValue::BigOffset { base: _, offsets } => offsets.shrink_to_fit(),
             VecMinValue::Small { vec } => vec.shrink_to_fit(),
@@ -103,7 +98,6 @@ impl VecMinValue {
             VecMinValue::Orig { vec } => {
                 vec.retain_mut(|elem| f(elem));
             }
-            VecMinValue::Dense { .. } => {}
             VecMinValue::SmallOffset { base, offsets } => {
                 offsets.retain_mut(|elem| f(&(*elem as usize + *base)));
             }
@@ -123,7 +117,6 @@ impl VecMinValue {
     pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = usize> + 'a> {
         match self {
             VecMinValue::Orig { vec } => Box::new(vec.iter().copied()),
-            VecMinValue::Dense { range, step } => Box::new(range.clone().step_by(*step)),
             VecMinValue::SmallOffset { base, offsets } => {
                 Box::new(offsets.iter().map(move |&offset| base + offset as usize))
             }

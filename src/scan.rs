@@ -9,7 +9,7 @@ use crate::{
     error::Result,
     maps::{MapRange, MapsExt},
     mem::MemExt,
-    region::VecMinValue,
+    data::VecMinValue,
 };
 
 pub struct Process {
