@@ -45,3 +45,4 @@ impl MemExt for Scan {
         Ok(())
     }
 }
+

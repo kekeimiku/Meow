@@ -64,13 +64,6 @@ impl Scan {
             }
 
             self.cache.flag = 1;
-
-            let mut num = 0;
-            self.cache.region.iter_mut().for_each(|x| {
-                num += x.len();
-            });
-
-            println!("num {}", num);
         } else {
             (0..self.cache.region.len()).for_each(|k1| {
                 let mem = self
@@ -99,6 +92,6 @@ impl Scan {
             num += self.cache.region[k].len();
         });
 
-        println!("总数 {}", num);
+        println!("num {}", num);
     }
 }
