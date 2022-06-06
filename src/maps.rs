@@ -25,7 +25,7 @@ impl MapsExt for Scan {
         file.read_to_string(&mut contents)?;
         Ok(parse_proc_maps(&contents)?
             .into_iter()
-            .filter(|m| m.end() - m.start() > 0 && m.is_read() )
+            .filter(|m| m.end() - m.start() > 0 && m.is_read() && m.is_write() && m.pathname() != "[vvar]")
             .collect())
     }
 }

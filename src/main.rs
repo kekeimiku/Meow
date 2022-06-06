@@ -7,4 +7,3 @@ fn main() {
     // v.compact();
     // println!("{:?}",v.iter().collect::<Vec<_>>())
 }
-

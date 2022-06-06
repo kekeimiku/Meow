@@ -42,6 +42,7 @@ fn cmd(app: &mut Scan) -> Result<()> {
             "p" | "print" => {
                 app.print();
             }
+            "l" => app.less(),
             _ => {}
         }
     }

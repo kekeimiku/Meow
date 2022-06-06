@@ -28,6 +28,7 @@ pub struct Scan {
 #[derive(Default, Debug)]
 pub struct Cache {
     pub region: Vec<VecMinValue>,
+    pub value: Vec<Vec<Vec<u8>>>,
     pub maps: Vec<MapRange>,
     pub flag: u8,
 }
@@ -55,34 +56,29 @@ impl Scan {
         if self.cache.flag == 0 {
             self.cache.maps = self.region_lv1()?;
 
-            self.cache.region = self
-                .cache
-                .maps
-                .iter()
-                .map(|m| {
-                    let mut vec = VecMinValue::Orig {
-                        // TODO 减少搜索过程中的内存占用
-                        #[cfg(feature = "memmem")]
-                        vec: find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), value)
-                            .collect::<Vec<_>>(),
+            for m in self.cache.maps.iter() {
+                let mut vec = VecMinValue::Orig {
+                    // TODO 减少搜索过程中的内存占用
+                    #[cfg(feature = "memmem")]
+                    vec: find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), value)
+                        .collect::<Vec<_>>(),
 
-                        #[cfg(not(feature = "memmem"))]
-                        vec: self
-                            .read(m.start(), m.end() - m.start())
-                            .unwrap()
-                            .windows(value.len())
-                            .enumerate()
-                            .step_by(value.len())
-                            .filter_map(|(k, v)| if v == value { Some(k) } else { None })
-                            .collect::<Vec<_>>(),
-                    };
-                    vec.compact();
-                    vec
-                })
-                .collect();
-
+                    #[cfg(not(feature = "memmem"))]
+                    vec: self
+                        .read(m.start(), m.end() - m.start())
+                        .unwrap()
+                        .windows(value.len())
+                        .enumerate()
+                        .step_by(value.len())
+                        .filter_map(|(k, v)| if v == value { Some(k) } else { None })
+                        .collect::<Vec<_>>(),
+                };
+                vec.compact();
+                self.cache.region.push(vec);
+                self.cache.value.push(Vec::default());
+            }
             self.cache.flag = 1;
-        } else {
+        } else if self.cache.flag == 1 {
             (0..self.cache.region.len()).for_each(|k1| {
                 let mem = self
                     .read(
@@ -90,14 +86,27 @@ impl Scan {
                         self.cache.maps[k1].end() - self.cache.maps[k1].start(),
                     )
                     .unwrap();
-                self.cache.region[k1].retain(|&a| &mem[a..a + value.len()] == value)
+                self.cache.region[k1].retain(|&a| {
+                    let v = &mem[a..a + value.len()];
+                    if v == value {
+                        self.cache.value[k1].push(v.to_vec());
+                        true
+                    } else {
+                        false
+                    }
+                })
             });
         }
 
         Ok(())
     }
 
+    pub fn less(&mut self) {
+      
+    }
+
     pub fn print(&self) {
+        println!("{:?}", self.cache);
         let mut num = 0;
         (0..self.cache.region.len()).for_each(|k| {
             num += self.cache.region[k].len();
