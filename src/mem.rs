@@ -18,7 +18,11 @@ impl MemExt for Scan {
 
     fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; size];
-        self.proc.mem.read_at(&mut buf, addr as u64)?;
+        if let Err(e) = self.proc.mem.read_at(&mut buf, addr as u64) {
+            println!("err: {}", e);
+        };
+        println!("0x{:x}=>ok", addr);
+        // self.proc.mem.read_at(&mut buf, addr as u64)?;
         Ok(buf)
     }
 
@@ -45,4 +49,3 @@ impl MemExt for Scan {
         Ok(())
     }
 }
-

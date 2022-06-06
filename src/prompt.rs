@@ -39,7 +39,7 @@ fn cmd(app: &mut Scan) -> Result<()> {
             "find" | "f" => {
                 app.scan(&input[1].parse::<i32>()?.to_le_bytes())?;
             }
-            "p" => {
+            "p" | "print" => {
                 app.print();
             }
             _ => {}
