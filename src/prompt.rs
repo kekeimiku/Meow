@@ -37,12 +37,17 @@ fn cmd(app: &mut Scan) -> Result<()> {
     } else {
         match input[0] {
             "find" | "f" => {
-                app.scan(&input[1].parse::<i32>()?.to_le_bytes())?;
+                app.run(&input[1].parse::<u8>()?.to_le_bytes());
             }
             "p" | "print" => {
                 app.print();
             }
-            "l" => app.less(),
+            "l1" =>{
+                app.less_scan1().unwrap();
+            }
+            "l2"=>{
+                app.less_scan2().unwrap();
+            }
             _ => {}
         }
     }

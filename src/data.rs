@@ -8,6 +8,12 @@ pub enum VecMinValue {
     Big { vec: Vec<u32> },
 }
 
+impl Default for VecMinValue {
+    fn default() -> Self {
+        Self::Orig { vec: Vec::default() }
+    }
+}
+
 impl VecMinValue {
     pub fn compact(&mut self) {
         let vec = match self {
@@ -20,7 +26,7 @@ impl VecMinValue {
         let size = high - low;
 
         // 判断是否可以把大于 u16max 的地址以base + offset Vec<u16> 储存
-        if size <= u16::MAX as _ {
+        if size <= u16::MAX as _ && high >= u16::MAX as _ {
             *self = VecMinValue::SmallOffset {
                 base: low,
                 offsets: vec
@@ -40,7 +46,7 @@ impl VecMinValue {
         }
 
         // 判断是否可以把大于 u32max 的地址以base + offset Vec<u32> 储存
-        if size <= u32::MAX as _ {
+        if size <= u32::MAX as _ && high >= u32::MAX as _ {
             *self = VecMinValue::BigOffset {
                 base: low,
                 offsets: vec
@@ -74,6 +80,26 @@ impl VecMinValue {
         }
     }
 
+    pub fn remove(&mut self, index: usize) {
+        match self {
+            VecMinValue::Orig { vec } => vec.remove(index),
+            VecMinValue::SmallOffset { offsets, .. } => offsets.remove(index).try_into().unwrap(),
+            VecMinValue::BigOffset { offsets, .. } => offsets.remove(index).try_into().unwrap(),
+            VecMinValue::Small { vec } => vec.remove(index).try_into().unwrap(),
+            VecMinValue::Big { vec } => vec.remove(index).try_into().unwrap(),
+        };
+    }
+
+    pub fn val(&self, index: usize) -> usize {
+        match self {
+            VecMinValue::Orig { vec } => vec[index],
+            VecMinValue::SmallOffset { base, offsets } => offsets[index] as usize + base,
+            VecMinValue::BigOffset { base, offsets } => offsets[index] as usize + base,
+            VecMinValue::Small { vec } => vec[index] as usize,
+            VecMinValue::Big { vec } => vec[index] as usize,
+        }
+    }
+
     // MineVecValue 为空
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -81,11 +107,26 @@ impl VecMinValue {
 
     pub fn shrink_to_fit(&mut self) {
         match self {
-            VecMinValue::Orig { vec } => vec.shrink_to_fit(),
-            VecMinValue::SmallOffset { base: _, offsets } => offsets.shrink_to_fit(),
-            VecMinValue::BigOffset { base: _, offsets } => offsets.shrink_to_fit(),
-            VecMinValue::Small { vec } => vec.shrink_to_fit(),
-            VecMinValue::Big { vec } => vec.shrink_to_fit(),
+            VecMinValue::Orig { vec } => {
+                vec.shrink_to_fit();
+                // println!("释放Orig");
+            }
+            VecMinValue::SmallOffset { base: _, offsets } => {
+                offsets.shrink_to_fit();
+                // println!("释放SmallOffset");
+            }
+            VecMinValue::BigOffset { base: _, offsets } => {
+                offsets.shrink_to_fit();
+                // println!("释放BigOffset");
+            }
+            VecMinValue::Small { vec } => {
+                vec.shrink_to_fit();
+                // println!("释放Small");
+            }
+            VecMinValue::Big { vec } => {
+                vec.shrink_to_fit();
+                println!("释放Big");
+            }
         }
     }
 

@@ -21,7 +21,7 @@ impl MemExt for Scan {
         if let Err(e) = self.proc.mem.read_at(&mut buf, addr as u64) {
             println!("err: {}", e);
         };
-        println!("0x{:x}=>ok", addr);
+        // println!("0x{:x}=>ok", addr);
         // self.proc.mem.read_at(&mut buf, addr as u64)?;
         Ok(buf)
     }

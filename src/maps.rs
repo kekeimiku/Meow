@@ -30,7 +30,7 @@ impl MapsExt for Scan {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct MapRange {
     pub range_start: usize,
     pub range_end: usize,
