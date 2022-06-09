@@ -38,7 +38,7 @@ cargo +nightly build -Z build-std=std,panic_abort -Z build-std-features=panic_im
 
 ## help WIP
 ```shell
-./San -p 1234  #进程pid
+rlwrap ./meow -p 1234  #进程pid
 find 9999  #搜索一个值 9999
 find 9997  #这个值变成了 9997 后面find以此类推
 <> # todo 相对自身变大变小的值，

@@ -8,11 +8,7 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
     print!("{}", name);
     std::io::Write::flush(&mut std::io::stdout())?;
     std::io::stdin().read_line(&mut line)?;
-    Ok(line
-        .replace('\n', "")
-        .split_whitespace()
-        .map(String::from)
-        .collect())
+    Ok(line.split_whitespace().map(String::from).collect())
 }
 
 pub fn start() -> Result<()> {
@@ -37,19 +33,13 @@ fn cmd(app: &mut Scan) -> Result<()> {
     } else {
         match input[0] {
             "find" | "f" => {
-                app.run(&input[1].parse::<i32>()?.to_le_bytes());
+                app.run(&input[1].parse::<i32>()?.to_ne_bytes());
             }
             "p" | "print" => {
                 app.print();
             }
-            "l1" => {
-                app.less_scan1().unwrap();
-            }
-            "l2" => {
-                app.less_scan2().unwrap();
-            }
-            "u" => {
-                app.run(&input[1].parse::<i32>()?.to_le_bytes());
+            "<" => {
+                app.run1();
             }
             "u1" => app.unknown_less1(),
             _ => {}

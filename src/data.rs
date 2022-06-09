@@ -80,6 +80,16 @@ impl VecMinValue {
         }
     }
 
+    pub fn remove(&mut self, index: usize) {
+        match self {
+            VecMinValue::Orig { vec } => vec.remove(index),
+            VecMinValue::SmallOffset { offsets, .. } => offsets.remove(index).try_into().unwrap(),
+            VecMinValue::BigOffset { offsets, .. } => offsets.remove(index).try_into().unwrap(),
+            VecMinValue::Small { vec } => vec.remove(index).try_into().unwrap(),
+            VecMinValue::Big { vec } => vec.remove(index).try_into().unwrap(),
+        };
+    }
+
     pub fn swap_remove(&mut self, index: usize) {
         match self {
             VecMinValue::Orig { vec } => vec.swap_remove(index),
