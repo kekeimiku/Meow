@@ -7,6 +7,9 @@ edition = "2021"
 
 [dependencies]
 memchr = { version = "2", default-features = false, optional = true }
+log = "0.4.17"
+env_logger = "0.9.0"
+chrono = "0.4.19"
 
 [features]
 default = []

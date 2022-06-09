@@ -80,13 +80,13 @@ impl VecMinValue {
         }
     }
 
-    pub fn remove(&mut self, index: usize) {
+    pub fn swap_remove(&mut self, index: usize) {
         match self {
-            VecMinValue::Orig { vec } => vec.remove(index),
-            VecMinValue::SmallOffset { offsets, .. } => offsets.remove(index).try_into().unwrap(),
-            VecMinValue::BigOffset { offsets, .. } => offsets.remove(index).try_into().unwrap(),
-            VecMinValue::Small { vec } => vec.remove(index).try_into().unwrap(),
-            VecMinValue::Big { vec } => vec.remove(index).try_into().unwrap(),
+            VecMinValue::Orig { vec } => vec.swap_remove(index),
+            VecMinValue::SmallOffset { offsets, .. } => offsets.swap_remove(index).try_into().unwrap(),
+            VecMinValue::BigOffset { offsets, .. } => offsets.swap_remove(index).try_into().unwrap(),
+            VecMinValue::Small { vec } => vec.swap_remove(index).try_into().unwrap(),
+            VecMinValue::Big { vec } => vec.swap_remove(index).try_into().unwrap(),
         };
     }
 
@@ -107,26 +107,11 @@ impl VecMinValue {
 
     pub fn shrink_to_fit(&mut self) {
         match self {
-            VecMinValue::Orig { vec } => {
-                vec.shrink_to_fit();
-                // println!("释放Orig");
-            }
-            VecMinValue::SmallOffset { base: _, offsets } => {
-                offsets.shrink_to_fit();
-                // println!("释放SmallOffset");
-            }
-            VecMinValue::BigOffset { base: _, offsets } => {
-                offsets.shrink_to_fit();
-                // println!("释放BigOffset");
-            }
-            VecMinValue::Small { vec } => {
-                vec.shrink_to_fit();
-                // println!("释放Small");
-            }
-            VecMinValue::Big { vec } => {
-                vec.shrink_to_fit();
-                println!("释放Big");
-            }
+            VecMinValue::Orig { vec } => vec.shrink_to_fit(),
+            VecMinValue::SmallOffset { offsets, .. } => offsets.shrink_to_fit(),
+            VecMinValue::BigOffset { offsets, .. } => offsets.shrink_to_fit(),
+            VecMinValue::Small { vec } => vec.shrink_to_fit(),
+            VecMinValue::Big { vec } => vec.shrink_to_fit(),
         }
     }
 

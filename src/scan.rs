@@ -3,6 +3,7 @@ use std::{
     path::PathBuf,
 };
 
+use log::debug;
 #[cfg(feature = "memmem")]
 use memchr::memmem::find_iter;
 
@@ -32,11 +33,17 @@ pub struct Cache {
     pub flag: u8,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 pub struct RegionData {
     pub addr: VecMinValue,
-    pub value: Vec<Vec<u8>>,
+    pub value: Value,
     pub maps: MapRange,
+}
+
+#[derive(Debug, Default)]
+pub struct Value {
+    pub exact: Vec<Vec<u8>>,
+    pub unknown: Vec<u8>,
 }
 
 impl Scan {
@@ -60,6 +67,9 @@ impl Scan {
 
     pub fn run(&mut self, value: &[u8]) {
         self.cache.input = value.to_vec();
+        // for maps in self.region_lv1().unwrap() {
+        //     self.unknown(maps).unwrap();
+        // }
         if self.cache.flag == 0 {
             for maps in self.region_lv1().unwrap() {
                 self.first_scan(maps).unwrap();
@@ -70,6 +80,7 @@ impl Scan {
         }
     }
 
+    // 精准过滤搜索
     pub fn filter_scan(&mut self) -> Result<()> {
         (0..self.cache.region.len()).for_each(|k1| {
             let mem = self
@@ -80,12 +91,13 @@ impl Scan {
                 .unwrap();
             self.cache.region[k1]
                 .addr
-                .retain(|&a| self.cache.input == &mem[a..a + self.cache.input.len()]);
+                .retain(|&a| self.cache.input == mem[a..a + self.cache.input.len()]);
             self.cache.region[k1].addr.shrink_to_fit()
         });
         Ok(())
     }
 
+    // 第一次变小搜索
     pub fn less_scan1(&mut self) -> Result<()> {
         (0..self.cache.region.len()).for_each(|k1| {
             let mem = self
@@ -104,12 +116,13 @@ impl Scan {
                     false
                 }
             });
-            self.cache.region[k1].value = tmp;
+            self.cache.region[k1].value.exact = tmp;
             self.cache.region[k1].addr.shrink_to_fit()
         });
         Ok(())
     }
 
+    // 第二次以及后续变小搜索都用这个
     pub fn less_scan2(&mut self) -> Result<()> {
         (0..self.cache.region.len()).for_each(|k1| {
             let mem = self
@@ -120,25 +133,25 @@ impl Scan {
                 .unwrap();
 
             (0..self.cache.region[k1].addr.len()).rev().for_each(|k2| {
-                // println!("{:?}", self.cache.region[k1].addr);
-                // println!("{:?}", self.cache.region[k1].value);
+                let cache_value = &self.cache.region[k1].value.exact[k2][0..4];
 
-                let value = &self.cache.region[k1].value[k2];
+                debug!("addr: 0x{:x}", self.cache.region[k1].addr.val(k2) + self.cache.region[k1].maps.start());
+                debug!("cache_value: {:?}", cache_value);
 
-                // println!("储存的值: {:?}", value);
+                let next_value = &mem[self.cache.region[k1].addr.val(k2)
+                    ..self.cache.region[k1].addr.val(k2) + cache_value.len()];
 
-                let vv = &mem
-                    [self.cache.region[k1].addr.val(k2)..self.cache.region[k1].addr.val(k2) + value.len()];
+                debug!("next_value: {:?}", next_value);
 
-                // println!("读取的值: {:?}", vv);
-
-                if vv >= value {
-                    self.cache.region[k1].addr.remove(k2);
-                    // println!("{:?}", self.cache.region[k1].addr);
-                    self.cache.region[k1].value.remove(k2);
-                    // println!("{:?}", self.cache.region[k1].value);
+                if i32::from_ne_bytes(next_value.try_into().unwrap())
+                    >= i32::from_ne_bytes(cache_value.try_into().unwrap())
+                {
+                    self.cache.region[k1].addr.swap_remove(k2);
+                    self.cache.region[k1].value.exact.swap_remove(k2);
+                    debug!("next_value >= cache_value, remove value and addr")
                 } else {
-                    self.cache.region[k1].value[k2] = vv.to_vec();
+                    self.cache.region[k1].value.exact[k2] = next_value.to_vec();
+                    debug!("next_value < cache_value. no remove, update value cache")
                 }
             });
 
@@ -147,6 +160,7 @@ impl Scan {
         Ok(())
     }
 
+    // 第一次搜索
     pub fn first_scan(&mut self, maps: MapRange) -> Result<()> {
         let n = self.cache.input.len();
         let mut vec = VecMinValue::Orig {
@@ -169,18 +183,14 @@ impl Scan {
 
         self.cache.region.push(RegionData {
             addr: vec,
-            value: Vec::default(),
+            value: Value::default(),
             maps,
         });
-
         Ok(())
     }
 
     pub fn print(&self) {
-        let mut num = 0;
-        (0..self.cache.region.len()).for_each(|k| {
-            num += self.cache.region[k].addr.len();
-        });
+        let num = self.cache.region.iter().map(|r| r.addr.len()).sum::<usize>();
 
         if num < 11 {
             (0..self.cache.region.len()).for_each(|k| {
@@ -198,5 +208,50 @@ impl Scan {
         }
 
         println!("num {}", num);
+    }
+
+    // 第一次未知搜索，保存整个内存区域
+    pub fn unknown(&mut self, maps: MapRange) -> Result<()> {
+        let mem = self.read(maps.start(), maps.end() - maps.start()).unwrap();
+        // println!("len {}", mem.len());
+        self.cache.region.push(RegionData {
+            addr: VecMinValue::default(),
+            value: Value {
+                exact: Vec::default(),
+                unknown: mem,
+            },
+            maps,
+        });
+        Ok(())
+    }
+
+    // 第一次未知变小
+    pub fn unknown_less1(&mut self) {
+        (0..self.cache.region.len()).for_each(|k| {
+            let maps = &self.cache.region[k].maps;
+            let ormem = &self.cache.region[k].value.unknown;
+            let mem = self.read(maps.start(), maps.end() - maps.start()).unwrap();
+            let addr = ormem
+                .windows(4)
+                .enumerate()
+                .step_by(4)
+                .zip(mem.windows(4).step_by(4))
+                .filter_map(|(m1, m2)| if m1.1 > m2 { Some(m1.0) } else { None })
+                .collect::<Vec<_>>();
+
+            let mut vec = VecMinValue::Orig { vec: addr };
+            vec.compact();
+
+            let r = RegionData {
+                addr: vec,
+                value: Value {
+                    exact: Vec::default(),
+                    unknown: mem,
+                },
+                maps: maps.clone(),
+            };
+
+            self.cache.region.push(r);
+        });
     }
 }
