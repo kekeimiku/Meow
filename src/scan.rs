@@ -176,12 +176,12 @@ impl Scan {
 
                 debug!(
                     "addr: 0x{:x}",
-                    self.cache.region[k1].addr.val(k2) + self.cache.region[k1].maps.start()
+                    self.cache.region[k1].addr.get(k2).unwrap() + self.cache.region[k1].maps.start()
                 );
                 debug!("cache_value: {:?}", cache_value);
 
-                let next_value = &mem[self.cache.region[k1].addr.val(k2)
-                    ..self.cache.region[k1].addr.val(k2) + cache_value.len()];
+                let l = self.cache.region[k1].addr.get(k2).unwrap();
+                let next_value = &mem[l..l + cache_value.len()];
 
                 debug!("next_value: {:?}", next_value);
 

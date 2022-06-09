@@ -15,6 +15,7 @@ impl Default for VecMinValue {
 }
 
 impl VecMinValue {
+    #[inline(always)]
     pub fn compact(&mut self) {
         let vec = match self {
             VecMinValue::Orig { vec } if vec.len() >= 2 => core::mem::take(vec),
@@ -70,6 +71,7 @@ impl VecMinValue {
     }
 
     // 获取MineVecValue的长度
+    #[inline(always)]
     pub fn len(&self) -> usize {
         match self {
             VecMinValue::Orig { vec } => vec.len(),
@@ -80,6 +82,7 @@ impl VecMinValue {
         }
     }
 
+    #[inline(always)]
     pub fn remove(&mut self, index: usize) {
         match self {
             VecMinValue::Orig { vec } => vec.remove(index),
@@ -90,6 +93,7 @@ impl VecMinValue {
         };
     }
 
+    #[inline(always)]
     pub fn swap_remove(&mut self, index: usize) {
         match self {
             VecMinValue::Orig { vec } => vec.swap_remove(index),
@@ -100,21 +104,24 @@ impl VecMinValue {
         };
     }
 
-    pub fn val(&self, index: usize) -> usize {
+    #[inline(always)]
+    pub fn get(&self, index: usize) -> Option<usize> {
         match self {
-            VecMinValue::Orig { vec } => vec[index],
-            VecMinValue::SmallOffset { base, offsets } => offsets[index] as usize + base,
-            VecMinValue::BigOffset { base, offsets } => offsets[index] as usize + base,
-            VecMinValue::Small { vec } => vec[index] as usize,
-            VecMinValue::Big { vec } => vec[index] as usize,
+            VecMinValue::Orig { vec } => Some(*vec.get(index)?),
+            VecMinValue::SmallOffset { base, offsets } => Some(*offsets.get(index)? as usize + base),
+            VecMinValue::BigOffset { base, offsets } => Some(*offsets.get(index)? as usize + base),
+            VecMinValue::Small { vec } => Some(*vec.get(index)? as usize),
+            VecMinValue::Big { vec } => Some(*vec.get(index)? as usize),
         }
     }
 
     // MineVecValue 为空
+    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[inline(always)]
     pub fn shrink_to_fit(&mut self) {
         match self {
             VecMinValue::Orig { vec } => vec.shrink_to_fit(),
@@ -126,6 +133,7 @@ impl VecMinValue {
     }
 
     // 删除一些元素
+    #[inline(always)]
     pub fn retain<F>(&mut self, mut f: F)
     where
         F: FnMut(&usize) -> bool,
@@ -150,6 +158,7 @@ impl VecMinValue {
     }
 
     // 返回计算usize的迭代器 Vec<usize>
+    #[inline(always)]
     pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = usize> + 'a> {
         match self {
             VecMinValue::Orig { vec } => Box::new(vec.iter().copied()),
