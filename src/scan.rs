@@ -4,6 +4,7 @@ use std::{
 };
 
 use log::debug;
+
 #[cfg(feature = "memmem")]
 use memchr::memmem::find_iter;
 
@@ -12,6 +13,7 @@ use crate::{
     error::Result,
     maps::{MapRange, MapsExt},
     mem::MemExt,
+    CompactVec,
 };
 
 pub struct Process {
@@ -48,49 +50,6 @@ pub struct Value {
 }
 
 impl Scan {
-    pub fn new(pid: u32) -> Result<Self> {
-        let mem = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&format!("/proc/{}/mem", pid))?;
-        let maps = PathBuf::from(&format!("/proc/{}/maps", pid));
-        let syscall = PathBuf::from(&format!("/proc/{}/syscall", pid));
-        Ok(Self {
-            proc: Process {
-                pid,
-                mem,
-                maps,
-                syscall,
-            },
-            cache: Cache::default(),
-        })
-    }
-
-    pub fn run(&mut self, value: &[u8]) {
-        self.cache.input = (value.to_vec(), value.len());
-        if self.cache.flag1 == 0 {
-            for maps in self.region_lv1().unwrap() {
-                self.first_scan(maps).unwrap();
-            }
-            self.cache.flag1 = 1
-        } else if self.cache.flag1 == 1 {
-            self.filter_scan().unwrap();
-        }
-    }
-
-    pub fn run1(&mut self) {
-        if self.cache.input.0.is_empty() {
-            println!("1111");
-            return;
-        }
-        if self.cache.flag2 == 0 {
-            self.less_scan1().unwrap();
-            self.cache.flag2 = 1
-        } else if self.cache.flag2 == 1 {
-            self.less_scan2().unwrap();
-        }
-    }
-
     // 精准过滤搜索
     pub fn filter_scan(&mut self) -> Result<()> {
         (0..self.cache.region.len()).for_each(|k1| {
@@ -104,6 +63,31 @@ impl Scan {
                 .addr
                 .retain(|&a| self.cache.input.0 == mem[a..a + self.cache.input.1]);
             self.cache.region[k1].addr.shrink_to_fit()
+        });
+        Ok(())
+    }
+
+    // 第一次搜索 TODO 减少搜索过程中的内存占用
+    pub fn first_scan(&mut self, maps: MapRange) -> Result<()> {
+        let n = self.cache.input.1;
+        #[cfg(feature = "memmem")]
+        let vec =
+            Mvec!(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), value).collect::<Vec<_>>();
+
+        #[cfg(not(feature = "memmem"))]
+        let vec = CompactVec![self
+            .read(maps.start(), maps.end() - maps.start())
+            .unwrap()
+            .windows(n)
+            .enumerate()
+            .step_by(n)
+            .filter_map(|(k, v)| if v == self.cache.input.0 { Some(k) } else { None })
+            .collect::<Vec<_>>()];
+
+        self.cache.region.push(RegionData {
+            addr: vec,
+            value: Value::default(),
+            maps,
         });
         Ok(())
     }
@@ -154,8 +138,8 @@ impl Scan {
                     false
                 }
             });
-
             self.cache.region[k1].value.exact = tmp;
+            
             self.cache.region[k1].addr.shrink_to_fit()
         });
         Ok(())
@@ -196,39 +180,27 @@ impl Scan {
                     debug!("next_value < cache_value. no remove, update value cache")
                 }
             });
-
             self.cache.region[k1].addr.shrink_to_fit()
         });
         Ok(())
     }
 
-    // 第一次搜索
-    pub fn first_scan(&mut self, maps: MapRange) -> Result<()> {
-        let n = self.cache.input.1;
-        let mut vec = VecMinValue::Orig {
-            // TODO 减少搜索过程中的内存占用
-            #[cfg(feature = "memmem")]
-            vec: find_iter(&self.read(m.start(), m.end() - m.start()).unwrap_or_default(), value)
-                .collect::<Vec<_>>(),
-
-            #[cfg(not(feature = "memmem"))]
-            vec: self
-                .read(maps.start(), maps.end() - maps.start())
-                .unwrap()
-                .windows(n)
-                .enumerate()
-                .step_by(n)
-                .filter_map(|(k, v)| if v == self.cache.input.0 { Some(k) } else { None })
-                .collect::<Vec<_>>(),
-        };
-        vec.compact();
-
-        self.cache.region.push(RegionData {
-            addr: vec,
-            value: Value::default(),
-            maps,
-        });
-        Ok(())
+    pub fn new(pid: u32) -> Result<Self> {
+        let mem = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&format!("/proc/{}/mem", pid))?;
+        let maps = PathBuf::from(&format!("/proc/{}/maps", pid));
+        let syscall = PathBuf::from(&format!("/proc/{}/syscall", pid));
+        Ok(Self {
+            proc: Process {
+                pid,
+                mem,
+                maps,
+                syscall,
+            },
+            cache: Cache::default(),
+        })
     }
 
     pub fn print(&self) {
@@ -251,6 +223,31 @@ impl Scan {
         }
 
         println!("num {}", num);
+    }
+
+    pub fn run(&mut self, value: &[u8]) {
+        self.cache.input = (value.to_vec(), value.len());
+        if self.cache.flag1 == 0 {
+            for maps in self.region_lv1().unwrap() {
+                self.first_scan(maps).unwrap();
+            }
+            self.cache.flag1 = 1
+        } else if self.cache.flag1 == 1 {
+            self.filter_scan().unwrap();
+        }
+    }
+
+    pub fn run1(&mut self) {
+        if self.cache.input.0.is_empty() {
+            println!("1111");
+            return;
+        }
+        if self.cache.flag2 == 0 {
+            self.less_scan1().unwrap();
+            self.cache.flag2 = 1
+        } else if self.cache.flag2 == 1 {
+            self.less_scan2().unwrap();
+        }
     }
 
     // 第一次未知搜索，保存整个内存区域

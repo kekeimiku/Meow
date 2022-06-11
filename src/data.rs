@@ -173,3 +173,12 @@ impl VecMinValue {
         }
     }
 }
+
+#[macro_export]
+macro_rules! CompactVec {
+    ($v:expr) => {{
+        let mut vec = VecMinValue::Orig { vec: $v };
+        vec.compact();
+        vec
+    }};
+}
