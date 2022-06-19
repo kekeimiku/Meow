@@ -11,3 +11,4 @@ Cargo.lock
 .dir-locals.el
 /dockertest
 .vscode
+test.txt

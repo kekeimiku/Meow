@@ -6,14 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-memchr = { version = "2", default-features = false, optional = true }
-log = "0.4.17"
-env_logger = "0.9.0"
-chrono = "0.4.19"
+memchr = { version = "2", default-features = false}
 
-[features]
-default = []
-memmem = ["dep:memchr"]
+[dependencies.utils]
+version = "*"
+path = "utils"
+
+# [features]
+# default = []
+# memmem = ["dep:memchr"]
 
 [profile.release]
 lto = true
