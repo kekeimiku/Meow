@@ -11,6 +11,7 @@ memchr = { version = "2", default-features = false, optional = true }
 [dependencies.utils]
 version = "*"
 path = "utils"
+features = ["dev"]
 
 [features]
 default = ["memmem"]
