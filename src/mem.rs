@@ -1,6 +1,8 @@
 use crate::error::Result;
 
+#[cfg(feature = "memmem")]
 use memchr::memmem::find_iter;
+
 use std::{fs::File, os::unix::prelude::FileExt};
 use utils::debug;
 
@@ -21,6 +23,7 @@ macro_rules! find_num_addr {
 }
 
 // 非对齐搜索，基本只有需要搜索字符串的时候才用
+#[cfg(feature = "memmem")]
 macro_rules! find_str_addr {
     ($buf:expr,$value:expr,$tmp:expr) => {
         let vec = find_iter(&$buf, $value).collect::<Vec<usize>>();
@@ -51,6 +54,7 @@ pub fn find_region_addr(
         if flag {
             find_num_addr!(buf,value,len,num,tmp,==);
         } else {
+            #[cfg(feature = "memmem")]
             find_str_addr!(buf, value, tmp);
         }
 
@@ -65,6 +69,7 @@ pub fn find_region_addr(
         if flag {
             find_num_addr!(buf,value,len,num,tmp,==);
         } else {
+            #[cfg(feature = "memmem")]
             find_str_addr!(buf, value, tmp);
         }
 
@@ -80,6 +85,7 @@ pub fn find_region_addr(
         if flag {
             find_num_addr!(buf,value,len,num,tmp,==);
         } else {
+            #[cfg(feature = "memmem")]
             find_str_addr!(buf, value, tmp);
         }
         debug!("(end - start) % CHUNK_SIZE");
