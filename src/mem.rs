@@ -6,7 +6,7 @@ use memchr::memmem::find_iter;
 use std::{fs::File, os::unix::prelude::FileExt};
 use utils::debug;
 
-// 文件分块的大小 默认4mb
+// 文件分块的大小 默认4mb，不要瞎鸡巴动它
 const CHUNK_SIZE: usize = 4096;
 
 // 对齐搜索，用于搜索数字，足够应对大部分情况
