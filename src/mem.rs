@@ -1,8 +1,5 @@
 use crate::error::Result;
 
-#[cfg(feature = "memmem")]
-use memchr::memmem::find_iter;
-
 use std::{fs::File, os::unix::prelude::FileExt};
 use utils::debug;
 
@@ -22,18 +19,10 @@ macro_rules! find_num_addr {
     };
 }
 
-// 非对齐搜索，基本只有需要搜索字符串的时候才用
-#[cfg(feature = "memmem")]
-macro_rules! find_str_addr {
-    ($buf:expr,$value:expr,$tmp:expr) => {
-        let vec = find_iter(&$buf, $value).collect::<Vec<usize>>();
-        $tmp.push(vec);
-    };
-}
-
 // 在一个分块查找一个内存区域中值为value的地址
 // file:文件句柄, start:开始区域, end:结束区域, value:目标值,
-// flag:是否开启内存对齐搜索，默认true
+// flag:是否开启内存对齐搜索，默认true，
+// 如果false 则为非对齐搜索，基本只有需要搜索字符串的时候才用，搜索期间会占用较多内存，不会对文件分块
 pub fn find_region_addr(
     file: &File,
     mut start: usize,
@@ -41,23 +30,22 @@ pub fn find_region_addr(
     value: &[u8],
     flag: bool,
 ) -> Result<Vec<usize>> {
-    let mut tmp = Vec::default();
+    if !flag {
+        let mut buf = vec![0; end - start];
+        file.read_at(&mut buf, start as u64)?;
+        return Ok(memchr::memmem::find_iter(&buf, value).collect::<Vec<usize>>());
+    }
 
+    let mut tmp = Vec::default();
     let len = value.len();
     let mut num = 0;
-
     let size = end - start;
+
     if CHUNK_SIZE >= size {
         let mut buf = vec![0; size];
         file.read_at(&mut buf, start as u64)?;
         debug!("CHUNK_SIZE >= size");
-        if flag {
-            find_num_addr!(buf,value,len,num,tmp,==);
-        } else {
-            #[cfg(feature = "memmem")]
-            find_str_addr!(buf, value, tmp);
-        }
-
+        find_num_addr!(buf,value,len,num,tmp,==);
         return Ok(tmp.into_iter().flatten().collect::<Vec<_>>());
     }
 
@@ -65,29 +53,17 @@ pub fn find_region_addr(
 
     for _ in 0..(end - start) / CHUNK_SIZE {
         file.read_at(&mut buf, start as u64)?;
-
-        if flag {
-            find_num_addr!(buf,value,len,num,tmp,==);
-        } else {
-            #[cfg(feature = "memmem")]
-            find_str_addr!(buf, value, tmp);
-        }
-
+        find_num_addr!(buf,value,len,num,tmp,==);
         start += CHUNK_SIZE;
         num += CHUNK_SIZE;
-        // debug!("0..(end - start) / CHUNK_SIZE");
+        debug!("0..(end - start) / CHUNK_SIZE");
     }
 
     let size = (end - start) % CHUNK_SIZE;
     if size != 0 {
         let mut buf = vec![0; size];
         file.read_at(&mut buf, start as u64)?;
-        if flag {
-            find_num_addr!(buf,value,len,num,tmp,==);
-        } else {
-            #[cfg(feature = "memmem")]
-            find_str_addr!(buf, value, tmp);
-        }
+        find_num_addr!(buf,value,len,num,tmp,==);
         debug!("(end - start) % CHUNK_SIZE");
     }
     Ok(tmp.into_iter().flatten().collect::<Vec<_>>())
