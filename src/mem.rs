@@ -1,7 +1,39 @@
 use crate::error::Result;
 
-use std::{fs::File, os::unix::prelude::FileExt};
+use std::{fs::File, io::Write, os::unix::prelude::FileExt, path::Path};
 use utils::debug;
+
+pub struct Mem<'a> {
+    pub file: &'a File,
+}
+
+impl<'a>  Mem<'a> {
+    pub fn new(file: &'a File) -> Mem {
+        Mem { file }
+    }
+
+    pub fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
+        let mut buf = vec![0; size];
+        self.file.read_at(&mut buf, addr as u64)?;
+        Ok(buf)
+    }
+
+    pub fn write(&self, addr: usize, payload: &[u8]) -> Result<usize> {
+        self.file.write_at(payload, addr as u64)?;
+        Ok(payload.len())
+    }
+
+    pub fn dump(&self, addr: usize, size: usize, path: &str) -> Result<usize> {
+        let mut file = File::create(Path::new(path))?;
+        let buf = self.read(addr, size)?;
+        file.write_all(&buf)?;
+        Ok(buf.len())
+    }
+
+    pub fn find_region_addr(&self, start: usize, end: usize, value: &[u8]) -> Result<Vec<usize>> {
+        find_region_addr(&self.file, start, end, value)
+    }
+}
 
 // 文件分块的大小 默认4mb，不要瞎鸡巴动它
 const CHUNK_SIZE: usize = 4096;
@@ -21,7 +53,7 @@ macro_rules! find_num_addr {
 
 // 在一个分块查找一个内存区域中值为value的地址
 // file:文件句柄, start:开始区域, end:结束区域, value:目标值,
-pub fn find_region_addr(file: &File, mut start: usize, end: usize, value: &[u8]) -> Result<Vec<usize>> {
+fn find_region_addr(file: &File, mut start: usize, end: usize, value: &[u8]) -> Result<Vec<usize>> {
     let mut tmp = Vec::default();
     let len = value.len();
     let mut num = 0;

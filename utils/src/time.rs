@@ -7,17 +7,11 @@ use std::{
 
 #[derive(Default)]
 pub struct Time {
-    /// Seconds after the minute - [0, 59]
     sec: i32,
-    /// Minutes after the hour - [0, 59]
     min: i32,
-    /// Hours after midnight - [0, 23]
     hour: i32,
-    /// Day of the month - [1, 31]
     day: i32,
-    /// Months since January - [1, 12]
     month: i32,
-    /// Years
     year: i32,
 }
 
@@ -57,7 +51,6 @@ impl fmt::Display for Time {
     }
 }
 
-// Convert epoch seconds into date time.
 fn seconds_to_datetime(ts: i64, tm: &mut Time) {
     let leapyear = |year| -> bool { year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) };
 
