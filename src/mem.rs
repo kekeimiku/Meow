@@ -7,7 +7,7 @@ pub struct Mem<'a> {
     pub file: &'a File,
 }
 
-impl<'a>  Mem<'a> {
+impl<'a> Mem<'a> {
     pub fn new(file: &'a File) -> Mem {
         Mem { file }
     }
@@ -31,7 +31,7 @@ impl<'a>  Mem<'a> {
     }
 
     pub fn find_region_addr(&self, start: usize, end: usize, value: &[u8]) -> Result<Vec<usize>> {
-        find_region_addr(&self.file, start, end, value)
+        find_region_addr(self.file, start, end, value)
     }
 }
 

@@ -8,7 +8,7 @@ fn main() {
     let file = File::open("test.txt").unwrap();
     let value = "22".as_bytes();
 
-    let v = Mem::new(&file).find_region_addr(0, 100, &value).unwrap();
+    let v = Mem::new(&file).find_region_addr(0, 100, value).unwrap();
 
     info!("{:?}", v);
 
