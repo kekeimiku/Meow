@@ -1,15 +1,25 @@
 use crate::error::Result;
 
-use std::{fs::File, io::Write, os::unix::prelude::FileExt, path::Path};
-use utils::debug;
+use std::{
+    fs::File,
+    io::{Read, Write},
+    os::unix::prelude::FileExt,
+    path::Path,
+};
 
-pub struct Mem<'a> {
-    pub file: &'a File,
+// 文件分块的大小 默认4mb，不要瞎鸡巴动它
+const CHUNK_SIZE: usize = 4096;
+
+pub struct MemScan<'a, T: Read + FileExt> {
+    pub file: &'a T,
 }
 
-impl<'a> Mem<'a> {
-    pub fn new(file: &'a File) -> Mem {
-        Mem { file }
+impl<'a, T> MemScan<'a, T>
+where
+    T: Read + FileExt,
+{
+    pub fn new(file: &'a T) -> MemScan<T> {
+        Self { file }
     }
 
     pub fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
@@ -31,58 +41,88 @@ impl<'a> Mem<'a> {
     }
 
     pub fn find_region_addr(&self, start: usize, end: usize, value: &[u8]) -> Result<Vec<usize>> {
-        find_region_addr(self.file, start, end, value)
+        find_region_addr(self.file, start, end, CHUNK_SIZE, value)
     }
 }
 
-// 文件分块的大小 默认4mb，不要瞎鸡巴动它
-const CHUNK_SIZE: usize = 4096;
-
-// 对齐搜索，用于搜索数字，足够应对大部分情况
-macro_rules! find_num_addr {
-    ($buf:expr,$value:expr,$len:expr,$num:expr,$tmp:expr,$eq:tt) => {
-        let vec = $buf
-            .windows($len)
-            .enumerate()
-            .step_by($len)
-            .filter_map(|(k, v)| if v $eq $value { Some(k + $num) } else { None })
-            .collect::<Vec<_>>();
-        $tmp.push(vec);
-    };
-}
-
-// 在一个分块查找一个内存区域中值为value的地址
-// file:文件句柄, start:开始区域, end:结束区域, value:目标值,
-fn find_region_addr(file: &File, mut start: usize, end: usize, value: &[u8]) -> Result<Vec<usize>> {
-    let mut tmp = Vec::default();
-    let len = value.len();
+pub fn find_region_addr<T: Read + FileExt>(
+    file: &T,
+    start: usize,
+    end: usize,
+    size: usize,
+    value: &[u8],
+) -> Result<Vec<usize>> {
     let mut num = 0;
-    let size = end - start;
+    Chunks::new(file, start, end, size)
+        .into_iter()
+        .try_fold(vec![], |mut init, next| {
+            init.extend(
+                next?
+                    .windows(value.len())
+                    .enumerate()
+                    .step_by(value.len())
+                    .filter_map(|(k, v)| if v == value { Some(k + num) } else { None })
+                    .collect::<Vec<_>>(),
+            );
+            num += size;
+            Ok(init)
+        })
+}
 
-    if CHUNK_SIZE >= size {
-        let mut buf = vec![0; size];
-        file.read_at(&mut buf, start as u64)?;
-        debug!("CHUNK_SIZE >= size");
-        find_num_addr![buf,value,len,num,tmp,==];
-        return Ok(tmp.into_iter().flatten().collect::<Vec<_>>());
+#[derive(Debug)]
+struct Chunks<'a, T: Read> {
+    file: &'a T,
+    start: usize,
+    size: usize,
+    num: usize,
+    last: usize,
+}
+
+impl<'a, T> Chunks<'a, T>
+where
+    T: Read,
+{
+    fn new(file: &'a T, start: usize, end: usize, size: usize) -> Self {
+        Self {
+            file,
+            start,
+            size,
+            num: (end - start) / size,
+            last: (end - start) % size,
+        }
     }
+}
 
-    let mut buf = vec![0; CHUNK_SIZE];
+impl<T> Iterator for Chunks<'_, T>
+where
+    T: Read + FileExt,
+{
+    type Item = std::io::Result<Vec<u8>>;
 
-    for _ in 0..(end - start) / CHUNK_SIZE {
-        file.read_at(&mut buf, start as u64)?;
-        find_num_addr![buf,value,len,num,tmp,==];
-        start += CHUNK_SIZE;
-        num += CHUNK_SIZE;
-        debug!("0..(end - start) / CHUNK_SIZE");
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut chunk = vec![0; self.num];
+        if self.num != 0 {
+            match self.file.read_at(&mut chunk, self.start as u64) {
+                Ok(_) => {
+                    self.start += self.size;
+                    self.num -= 1;
+                    return Some(Ok(chunk));
+                }
+                Err(e) => return Some(Err(e)),
+            };
+        }
+
+        if self.last != 0 {
+            let mut chunk = vec![0; self.last];
+            match self.file.read_at(&mut chunk, self.start as u64) {
+                Ok(_) => {
+                    self.last = 0;
+                    return Some(Ok(chunk));
+                }
+                Err(e) => return Some(Err(e)),
+            };
+        }
+
+        return None;
     }
-
-    let size = (end - start) % CHUNK_SIZE;
-    if size != 0 {
-        let mut buf = vec![0; size];
-        file.read_at(&mut buf, start as u64)?;
-        find_num_addr![buf,value,len,num,tmp,==];
-        debug!("(end - start) % CHUNK_SIZE");
-    }
-    Ok(tmp.into_iter().flatten().collect::<Vec<_>>())
 }
