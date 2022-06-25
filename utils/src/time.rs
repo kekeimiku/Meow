@@ -88,19 +88,17 @@ fn seconds_to_datetime(ts: i64, tm: &mut Time) {
     tm.day = dayno as i32 + 1;
 }
 
+pub fn get_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("get time error")
+        .as_secs()
+}
+
 // 获取当前时间，offset 0 默认utc
 pub fn current_time(offset: i64) -> Time {
-    let timestamp = i64::try_from(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("get time error")
-            .as_secs(),
-    )
-    .unwrap()
-        + offset;
-
+    let timestamp = i64::try_from(get_timestamp()).unwrap() + offset;
     let mut time = Time::default();
     seconds_to_datetime(timestamp, &mut time);
-
     time
 }

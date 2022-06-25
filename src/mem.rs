@@ -7,8 +7,8 @@ use std::{
     path::Path,
 };
 
-// 文件分块的大小 默认4mb，不要瞎鸡巴动它
-const CHUNK_SIZE: usize = 4096;
+// 文件分块的大小 默认8mb，不要瞎鸡巴动它
+const CHUNK_SIZE: usize = 8192;
 
 pub struct MemScan<'a, T: Read + FileExt> {
     pub file: &'a T,
@@ -55,7 +55,7 @@ pub fn find_region_addr<T: Read + FileExt>(
     let mut num = 0;
     Chunks::new(file, start, end, size)
         .into_iter()
-        .try_fold(vec![], |mut init, next| {
+        .try_fold(Vec::default(), |mut init, next| {
             init.extend(
                 next?
                     .windows(value.len())
@@ -70,7 +70,7 @@ pub fn find_region_addr<T: Read + FileExt>(
 }
 
 #[derive(Debug)]
-struct Chunks<'a, T: Read> {
+pub struct Chunks<'a, T: Read> {
     file: &'a T,
     start: usize,
     size: usize,
@@ -82,7 +82,7 @@ impl<'a, T> Chunks<'a, T>
 where
     T: Read,
 {
-    fn new(file: &'a T, start: usize, end: usize, size: usize) -> Self {
+    pub fn new(file: &'a T, start: usize, end: usize, size: usize) -> Self {
         Self {
             file,
             start,
@@ -100,8 +100,8 @@ where
     type Item = std::io::Result<Vec<u8>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut chunk = vec![0; self.num];
         if self.num != 0 {
+            let mut chunk = vec![0; self.size];
             match self.file.read_at(&mut chunk, self.start as u64) {
                 Ok(_) => {
                     self.start += self.size;
@@ -123,6 +123,6 @@ where
             };
         }
 
-        return None;
+        None
     }
 }
