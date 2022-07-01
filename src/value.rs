@@ -1,6 +1,6 @@
-// 尽量减少储存 Vec<usize> 的内存占用，
-// 这只损失了一点性能，但是在最佳情况下可以减少一倍的内存占用
-#[derive(Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum VecMinValue {
     Orig { vec: Vec<usize> },
     SmallOffset { base: usize, offsets: Vec<u16> },

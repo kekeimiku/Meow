@@ -34,7 +34,7 @@ impl Maps {
 
 pub fn parse_proc_maps(contents: &str) -> Result<Vec<Maps>> {
     let mut vec: Vec<Maps> = Vec::new();
-    let e = || Error::New("failed to parse maps".into());
+    let e = || Error::ParseMapsError;
     for line in contents.split('\n') {
         let mut split = line.split_whitespace();
         let range = split.next();

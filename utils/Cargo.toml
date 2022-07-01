@@ -8,8 +8,6 @@ edition = "2021"
 [dependencies]
 
 [features]
-default = ["log", "dev"]
-
 log = ["time"]
 dev = []
 release = []

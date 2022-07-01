@@ -6,18 +6,25 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-memchr = { version = "2", default-features = false }
+
+[dependencies.serde]
+version = "1.0.137"
+default-features = false
+features = ["derive"]
+
+[dependencies.bincode]
+version = "1.3.3"
+default-features = false
 
 [dependencies.utils]
 version = "*"
 path = "utils"
-features = ["dev"]
+features = ["log", "dev"]
 
 [profile.release]
 lto = true
 codegen-units = 1
-debug = true
-#panic = "abort"
-#strip = true
+panic = "abort"
+strip = true
 
 [profile.dev]

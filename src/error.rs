@@ -2,7 +2,7 @@
 pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
-    New(String),
+    ParseMapsError,
 }
 
 impl std::fmt::Display for Error {
@@ -10,7 +10,7 @@ impl std::fmt::Display for Error {
         match self {
             Error::ParseIntError(e) => write!(f, "Parse int error: {}", e),
             Error::IoError(e) => write!(f, "Io error: {}", e),
-            Error::New(e) => write!(f, "Error: {} ", e),
+            Error::ParseMapsError => write!(f, "failed to parse maps"),
         }
     }
 }
