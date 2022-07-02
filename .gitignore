@@ -12,3 +12,4 @@ Cargo.lock
 /dockertest
 .vscode
 test.txt
+main.rs

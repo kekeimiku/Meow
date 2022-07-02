@@ -1,9 +1,11 @@
 use crate::error::Result;
 
-use std::{fs::File, io::Write, os::unix::prelude::FileExt, path::Path};
+use std::os::unix::prelude::FileExt;
 
-// 文件分块的大小 默认8mb
-const CHUNK_SIZE: usize = 8192;
+pub trait MemExt {
+    fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>>;
+    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
+}
 
 pub struct Mem<'a, T: FileExt> {
     pub handle: &'a T,
@@ -16,57 +18,27 @@ where
     pub fn new(handle: &'a T) -> Mem<T> {
         Self { handle }
     }
+}
 
-    pub fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
+impl<'a, T> MemExt for Mem<'a, T>
+where
+    T: FileExt,
+{
+    fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; size];
         self.handle.read_at(&mut buf, addr as u64)?;
         Ok(buf)
     }
 
-    pub fn write(&self, addr: usize, payload: &[u8]) -> Result<usize> {
+    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize> {
         self.handle.write_at(payload, addr as u64)?;
         Ok(payload.len())
     }
-
-    pub fn dump(&self, addr: usize, size: usize, path: &str) -> Result<usize> {
-        let mut file = File::create(Path::new(path))?;
-        let buf = self.read(addr, size)?;
-        file.write_all(&buf)?;
-        Ok(buf.len())
-    }
-
-    pub fn find_region_addr(&self, start: usize, end: usize, value: &[u8]) -> Result<Vec<usize>> {
-        find_region_addr(self.handle, start, end, CHUNK_SIZE, value)
-    }
-}
-
-pub fn find_region_addr<T: FileExt>(
-    handle: &T,
-    start: usize,
-    end: usize,
-    size: usize,
-    value: &[u8],
-) -> Result<Vec<usize>> {
-    let mut num = 0;
-    Chunks::new(handle, start, end, size)
-        .into_iter()
-        .try_fold(Vec::default(), |mut init, next| {
-            init.extend(
-                next?
-                    .windows(value.len())
-                    .enumerate()
-                    .step_by(value.len())
-                    .filter_map(|(k, v)| if v == value { Some(k + num) } else { None })
-                    .collect::<Vec<_>>(),
-            );
-            num += size;
-            Ok(init)
-        })
 }
 
 #[derive(Debug)]
-pub struct Chunks<'a, T: FileExt> {
-    handle: &'a T,
+pub struct Chunks<'a, T: MemExt> {
+    mem: &'a T,
     start: usize,
     size: usize,
     num: usize,
@@ -75,46 +47,52 @@ pub struct Chunks<'a, T: FileExt> {
 
 impl<'a, T> Chunks<'a, T>
 where
-    T: FileExt,
+    T: MemExt,
 {
-    pub fn new(handle: &'a T, start: usize, end: usize, size: usize) -> Self {
+    pub fn new(mem: &'a T, start: usize, end: usize, mut size: usize) -> Self {
+        let mut last = 0;
+        let mut num = 1;
+        if size < end - start {
+            last = (end - start) % size;
+            num = (end - start) / size;
+        } else {
+            size = end - start;
+        }
         Self {
-            handle,
+            mem,
             start,
             size,
-            num: (end - start) / size,
-            last: (end - start) % size,
+            num,
+            last,
         }
     }
 }
 
 impl<T> Iterator for Chunks<'_, T>
 where
-    T: FileExt,
+    T: MemExt,
 {
-    type Item = std::io::Result<Vec<u8>>;
+    type Item = Result<Vec<u8>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.num != 0 {
-            let mut chunk = vec![0; self.size];
-            match self.handle.read_at(&mut chunk, self.start as u64) {
-                Ok(_) => {
+            match self.mem.read(self.start, self.size) {
+                Ok(chunk) => {
                     self.start += self.size;
                     self.num -= 1;
                     return Some(Ok(chunk));
                 }
-                Err(e) => return Some(Err(e)),
+                Err(err) => return Some(Err(err)),
             };
         }
 
         if self.last != 0 {
-            let mut chunk = vec![0; self.last];
-            match self.handle.read_at(&mut chunk, self.start as u64) {
-                Ok(_) => {
+            match self.mem.read(self.start, self.last) {
+                Ok(chunk) => {
                     self.last = 0;
                     return Some(Ok(chunk));
                 }
-                Err(e) => return Some(Err(e)),
+                Err(err) => return Some(Err(err)),
             };
         }
 

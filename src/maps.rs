@@ -64,7 +64,7 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<Maps>> {
 mod tests {
     #[test]
     fn test_parse_proc_maps() {
-        use crate::maps::parse_proc_maps;
+        use super::parse_proc_maps;
         let contents: &str = r#"563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/bin/fish
 563ea23ea000-563ea2569000 rw-p 00000000 00:00 0 [heap]
 7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0"#;
