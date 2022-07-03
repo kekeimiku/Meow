@@ -3,6 +3,8 @@ pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
     ParseMapsError,
+    UseExtError(libloading::Error),
+    New(String),
 }
 
 impl std::fmt::Display for Error {
@@ -11,6 +13,8 @@ impl std::fmt::Display for Error {
             Error::ParseIntError(e) => write!(f, "Parse int error: {}", e),
             Error::IoError(e) => write!(f, "Io error: {}", e),
             Error::ParseMapsError => write!(f, "failed to parse maps"),
+            Error::UseExtError(e) => write!(f, "libloading error: {}", e),
+            Error::New(e) => write!(f, "{}", e),
         }
     }
 }
@@ -24,6 +28,12 @@ impl From<std::num::ParseIntError> for Error {
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Error::IoError(e)
+    }
+}
+
+impl From<libloading::Error> for Error {
+    fn from(e: libloading::Error) -> Self {
+        Error::UseExtError(e)
     }
 }
 

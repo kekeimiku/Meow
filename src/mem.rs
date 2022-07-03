@@ -21,9 +21,12 @@ where
     pub fn new(mem: &'a T, start: usize, end: usize, mut size: usize) -> Self {
         let mut last = 0;
         let mut num = 1;
+        if end < start {
+            panic!("seek error")
+        }
         if size < end - start {
-            last = (end - start) % size;
             num = (end - start) / size;
+            last = (end - start) % size;
         } else {
             size = end - start;
         }

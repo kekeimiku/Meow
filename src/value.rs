@@ -1,6 +1,4 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub enum VecMinValue {
     Orig { vec: Vec<usize> },
     SmallOffset { base: usize, offsets: Vec<u16> },

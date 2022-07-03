@@ -1,7 +1,6 @@
 use std::os::unix::prelude::FileExt;
 
-use crate::mem::MemExt;
-use crate::error::Result;
+use crate::{error::Result, mem::MemExt};
 
 pub struct Mem<'a, T: FileExt> {
     pub handle: &'a T,

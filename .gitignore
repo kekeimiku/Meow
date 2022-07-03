@@ -13,3 +13,4 @@ Cargo.lock
 .vscode
 test.txt
 main.rs
+libt*
