@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path, rc::Rc};
 
 use crate::{
     error::{Error, Result},
-    maps::Region,
+    region::Region,
     mem::MemExt,
 };
 use libloading::{Library, Symbol};

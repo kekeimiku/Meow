@@ -46,6 +46,8 @@ meow 分为 core 以及 plugin 两部分，core 只提供 读/写/查找 相关�
 
 - [ ] 其它语言开发meow插件的 sdk
 
+- [ ] api 整理
+
 ### 附带插件
 
 - [ ] tline，简单的终端用户readline界面 (进行中)
