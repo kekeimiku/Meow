@@ -6,80 +6,43 @@
 
 优先级先后顺序：linux android windows macos ios
 
-v0.1.1 linux功能列表，所有功能都不需要依赖ptrace。:
+meow 分为core以及plugin两部分，core只提供 读/写/查找 相关内存的功能，plugin基于动态库，公开了一些core api用于用户自定义一些插件，允许闭源。
 
-- 快速内存过滤
+以下是 linux v0.1.1 版本 功能列表，所有功能都不需要依赖ptrace。:
 
-- 内存写入
+- 核心功能
 
-- 内存冻结
+- [x] 查找数据地址
 
-- dump内存
+- [x] 过滤找到的地址
 
-- 注入动态库
+- [x] read/write/dump 内存
 
-目前拥有的功能：
+- [x] 解析maps
 
-内存冻结和dump，希望能兼顾cpu和内存占用低，并且性能非常好的内存过滤。
+- [ ] 可选内存区域
 
-非常方便的直接注入so到目标进程。
+- 争议性功能
 
-开始使用：
+- [ ] 模糊搜索
 
-请使用 57ef1b5078617bf383c346953c55e9e449a684b8 这次commit
+- [ ] 将结果写入磁盘
 
-编译需要安装nightly rust
+- 插件API
 
-```shell
-cargo +nightly build -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort --target x86_64-unknown-linux-musl --release
-```
+- [x] read/write/dump 内存
 
-由于功能快速迭代中，暂时不提供预编译的二进制文件，而且rust环境那么方便。。。
+- [x] 获取maps
 
-## help WIP
-```shell
-rlwrap ./meow -p 1234  #进程pid
-find 9999  #搜索一个值 9999
-find 9997  #这个值变成了 9997 后面find以此类推
-<> # todo 相对自身变大变小的值，
-find unknown type # todo 未知值搜索
-write 0x12345678 2333  #向地址0x12345678写入2333
-read 0x12345678 4  #读取0x12345678的四个字节
-lock 0x12345678  #冻结0x12345678当前的值
-inject /path/test.so  #向当前进程注入test.so，需要绝对路径
-dump 0x12345678 10000 /path/file.dump  #dump 0x12345678处10000个字节到/path/file.dump，绝对路径
-```
+- [x] 获取pid
 
-![img2](img/file.gif)
+- [ ] 获取地址列表
 
-![img1](img/cnm.gif)
+- 默认附带插件
 
-todo: 指针查找，准备以后可能弄出gui来再考虑。
+- [ ] injection，用于注入动态库 (进行中)
 
-如果有人想贡献代码，请注意，尽量不要再引入第三方库。
-
-## changelog
-
-2020.5
-```
-改名 meow
-
-准备大量重构
-
-尝试优化储存，2g -> 600mb
-
-修复注入功能。
-```
-
-2020.4 
-```
-更新了libc，由于glibc的不兼容更改导致注入功能失效。
-
-砍掉了多线程，每次扫描差异都把内存缓存到本地对比，大幅减少cpu使用，扫描期间内存占用变高，结束后内存占用不变。
-
-```
-
-2020.3 开始开发。
+- [ ] demo，编写插件的文档
 
 ## Thanks for free JetBrains Open Source license
 
