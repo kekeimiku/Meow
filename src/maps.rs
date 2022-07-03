@@ -1,14 +1,14 @@
 use crate::error::{Error, Result};
 
 #[derive(Debug, Default, Clone)]
-pub struct Maps {
+pub struct Region {
     pub range_start: usize,
     pub range_end: usize,
     pub flags: String,
     pub pathname: String,
 }
 
-impl Maps {
+impl Region {
     pub fn size(&self) -> usize {
         self.range_end - self.range_start
     }
@@ -32,8 +32,8 @@ impl Maps {
     }
 }
 
-pub fn parse_proc_maps(contents: &str) -> Result<Vec<Maps>> {
-    let mut vec: Vec<Maps> = Vec::new();
+pub fn parse_proc_maps(contents: &str) -> Result<Vec<Region>> {
+    let mut vec: Vec<Region> = Vec::new();
     let e = || Error::ParseMapsError;
     for line in contents.split('\n') {
         let mut split = line.split_whitespace();
@@ -50,7 +50,7 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<Maps>> {
         split.next().ok_or_else(e)?;
         split.next().ok_or_else(e)?;
 
-        vec.push(Maps {
+        vec.push(Region {
             range_start: usize::from_str_radix(range_start, 16)?,
             range_end: usize::from_str_radix(range_end, 16)?,
             flags: flags.to_string(),

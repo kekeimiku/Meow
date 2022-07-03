@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path, rc::Rc};
 
 use crate::{
     error::{Error, Result},
-    maps::Maps,
+    maps::Region,
     mem::MemExt,
 };
 use libloading::{Library, Symbol};
@@ -14,12 +14,12 @@ pub trait Plugin {
 
 pub struct Meow<'a> {
     pub pid: u32,
-    pub maps: Vec<Maps>,
+    pub maps: &'a [Region],
     pub handle: &'a dyn MemExt,
 }
 
 impl<'a> Meow<'a> {
-    pub fn new(pid: u32, maps: Vec<Maps>, handle: &'a dyn MemExt) -> Meow {
+    pub fn new(pid: u32, maps: &'a [Region], handle: &'a dyn MemExt) -> Meow<'a> {
         Self { pid, maps, handle }
     }
 
@@ -27,8 +27,8 @@ impl<'a> Meow<'a> {
         self.pid
     }
 
-    pub fn getmaps(&self) -> Vec<Maps> {
-        self.maps.clone()
+    pub fn getmaps(&self) -> Vec<Region> {
+        self.maps.to_vec()
     }
 
     pub fn read(&self, addr: usize, size: usize) {

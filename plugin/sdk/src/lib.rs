@@ -11,17 +11,11 @@ pub trait Plugin {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Maps {
+pub struct Region {
     pub range_start: usize,
     pub range_end: usize,
     pub flags: String,
     pub pathname: String,
-}
-
-pub struct Meow<'a> {
-    pub pid: u32,
-    pub maps: Vec<Maps>,
-    pub handle: &'a dyn MemExt,
 }
 
 pub trait MemExt {
@@ -29,13 +23,23 @@ pub trait MemExt {
     fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
 }
 
+pub struct Meow<'a> {
+    pub pid: u32,
+    pub maps: &'a [Region],
+    pub handle: &'a dyn MemExt,
+}
+
 impl<'a> Meow<'a> {
+    pub fn new(pid: u32, maps: &'a [Region], handle: &'a dyn MemExt) -> Meow<'a> {
+        Self { pid, maps, handle }
+    }
+
     pub fn get_pid(&self) -> u32 {
         self.pid
     }
 
-    pub fn getmaps(&self) -> Vec<Maps> {
-        self.maps.clone()
+    pub fn getmaps(&self) -> Vec<Region> {
+        self.maps.to_vec()
     }
 
     pub fn read(&self, addr: usize, size: usize) {
