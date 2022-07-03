@@ -15,7 +15,7 @@ impl Plugin for Injection {
             "getpid" => println!("{}", meow.get_pid()),
             "getmaps" => println!("{:?}", meow.getmaps()),
             "read" => meow.read(1, 3),
-            _ => println!("无效命令")
+            _ => {}
         }
     }
 }

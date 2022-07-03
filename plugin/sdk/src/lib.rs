@@ -51,6 +51,20 @@ impl<'a> Meow<'a> {
         let v = self.handle.write(addr, payload);
         println!("{:?}", v)
     }
+
+    pub fn scan(&self, start: usize, end: usize, value: &[u8]) {
+        let v = find_addr_by_region(self.handle, start, end, value);
+        println!("{:?}", v)
+    }
+}
+
+pub fn find_addr_by_region<T: MemExt + ?Sized>(
+    handle: &T,
+    start: usize,
+    end: usize,
+    value: &[u8],
+) -> Vec<usize> {
+    vec![1, 2, 3, 4, 5, 6, 7]
 }
 
 #[macro_export(local_inner_macros)]

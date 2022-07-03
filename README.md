@@ -6,7 +6,7 @@
 
 优先级先后顺序：linux android windows macos ios
 
-meow 分为 core 以及 plugin 两部分，core 只提供 读/写/查找 相关内存的功能，plugin 基于动态库，公开了一些 core api 用于方便用户自定义一些插件，插件允许闭源分发。
+meow 分为 core 以及 plugin 两部分，core 为各平台提供 读/写/查找 相关内存的功能，plugin 基于动态库，公开了一些 core api 用于方便用户自定义一些插件，插件允许闭源分发。
 
 以下是 linux v0.1.1 版本 功能列表，所有功能都不需要依赖 ptrace 。
 
