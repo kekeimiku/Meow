@@ -2,11 +2,11 @@ use crate::error::Result;
 
 pub trait MemExt {
     fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>>;
-    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
+    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;    
 }
 
 #[derive(Debug)]
-pub struct Chunks<'a, T: MemExt> {
+pub struct Chunks<'a, T: MemExt + ?Sized> {
     mem: &'a T,
     start: usize,
     size: usize,
@@ -16,7 +16,7 @@ pub struct Chunks<'a, T: MemExt> {
 
 impl<'a, T> Chunks<'a, T>
 where
-    T: MemExt,
+    T: MemExt + ?Sized,
 {
     pub fn new(mem: &'a T, start: usize, end: usize, mut size: usize) -> Self {
         let mut last = 0;
@@ -42,7 +42,7 @@ where
 
 impl<T> Iterator for Chunks<'_, T>
 where
-    T: MemExt,
+    T: MemExt + ?Sized,
 {
     type Item = Result<Vec<u8>>;
 

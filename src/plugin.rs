@@ -4,7 +4,6 @@ use crate::{
     error::{Error, Result},
     mem::MemExt,
     region::Region,
-    scan::find_addr_by_region,
 };
 use libloading::{Library, Symbol};
 
@@ -51,10 +50,10 @@ where
         println!("{:?}", v)
     }
 
-    pub fn scan(&self, start: usize, end: usize, value: &[u8]) {
-        let v = find_addr_by_region(self.handle, start, end, value);
-        println!("{:?}", v)
-    }
+    // pub fn scan(&self, start: usize, end: usize, value: &[u8]) {
+    //     let v = self.handle.find_addr_by_region(start, end, value);
+    //     println!("{:?}", v)
+    // }
 }
 
 pub struct PluginManager<'a, T: MemExt> {

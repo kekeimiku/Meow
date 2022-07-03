@@ -5,7 +5,7 @@ use crate::{
 
 const CHUNK_SIZE: usize = 8192;
 
-pub fn find_addr_by_region<T: MemExt>(
+pub fn find_addr_by_region<T: MemExt + ?Sized>(
     handle: &T,
     start: usize,
     end: usize,
