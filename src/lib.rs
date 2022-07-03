@@ -1,9 +1,9 @@
 pub mod error;
-pub mod region;
 pub mod mem;
+pub mod plugin;
+pub mod region;
 pub mod scan;
 pub mod value;
-pub mod plugin;
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub mod linux;

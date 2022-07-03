@@ -1,84 +1,28 @@
 use std::{collections::HashMap, path::Path, rc::Rc};
 
-use crate::{
-    error::{Error, Result},
-    mem::MemExt,
-    region::Region,
-};
+use crate::error::{Error, Result};
 use libloading::{Library, Symbol};
 
-pub trait Plugin<T: MemExt> {
+pub trait Plugin {
     fn name(&self) -> &'static str;
-    fn call(&self, args: &str, meow: Meow<T>);
+    fn call(&self, args: &str);
 }
 
-pub struct Meow<'a, T: MemExt> {
-    pub pid: u32,
-    pub maps: &'a [Region],
-    pub handle: &'a T,
-    pub addr: &'a [usize],
-}
-
-impl<'a, T> Meow<'a, T>
-where
-    T: MemExt,
-{
-    pub fn new(pid: u32, maps: &'a [Region], addr: &'a [usize], handle: &'a T) -> Meow<'a, T> {
-        Self {
-            pid,
-            maps,
-            handle,
-            addr,
-        }
-    }
-
-    pub fn get_pid(&self) -> u32 {
-        self.pid
-    }
-
-    pub fn getmaps(&self) -> Vec<Region> {
-        self.maps.to_vec()
-    }
-
-    pub fn read(&self, addr: usize, size: usize) {
-        let v = self.handle.read(addr, size).unwrap();
-        println!("{:?}", v)
-    }
-
-    pub fn write(&self, addr: usize, payload: &[u8]) {
-        let v = self.handle.write(addr, payload);
-        println!("{:?}", v)
-    }
-
-    // pub fn scan(&self, start: usize, end: usize, value: &[u8]) {
-    //     let v = self.handle.find_addr_by_region(start, end, value);
-    //     println!("{:?}", v)
-    // }
-}
-
-pub struct PluginManager<'a, T: MemExt> {
-    pub extends: HashMap<&'a str, Rc<Box<dyn Plugin<T>>>>,
+#[derive(Default)]
+pub struct PluginManager<'a> {
+    pub extends: HashMap<&'a str, Rc<Box<dyn Plugin>>>,
     pub libs: Vec<Library>,
 }
 
-impl<T> PluginManager<'_, T>
-where
-    T: MemExt,
-{
-    pub fn new() -> Self {
-        Self {
-            extends: HashMap::new(),
-            libs: Vec::new(),
-        }
-    }
+impl PluginManager<'_> {
     pub fn load<P>(&mut self, filepath: P) -> Result<()>
     where
         P: AsRef<Path>,
     {
-        type Ext<T> = unsafe fn() -> *mut dyn Plugin<T>;
+        type Ext = unsafe fn() -> *mut dyn Plugin;
         let lib = unsafe { Library::new(filepath.as_ref()) }?;
         self.libs.push(lib);
-        let constructor: Symbol<Ext<T>> = unsafe {
+        let constructor: Symbol<Ext> = unsafe {
             self.libs
                 .last()
                 .ok_or_else(|| Error::New("err".into()))?
@@ -92,7 +36,7 @@ where
         Ok(())
     }
 
-    pub fn select(&self, target: &str) -> Result<Rc<Box<dyn Plugin<T>>>> {
+    pub fn select(&self, target: &str) -> Result<Rc<Box<dyn Plugin>>> {
         self.extends
             .get(target)
             .cloned()

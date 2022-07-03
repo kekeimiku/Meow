@@ -1,4 +1,4 @@
-use sdk::{plugin_start, Meow, Plugin};
+use sdk::{plugin_start, Plugin};
 
 #[derive(Debug, Default)]
 struct Injection {}
@@ -8,13 +8,10 @@ impl Plugin for Injection {
         "injection"
     }
 
-    fn call(&self, args: &str, meow: Meow) {
+    fn call(&self, args: &str) {
         match args {
             "version" => println!("v0.1.0"),
             "info" => println!("injection plugin linux x64"),
-            "getpid" => println!("{}", meow.get_pid()),
-            "getmaps" => println!("{:?}", meow.getmaps()),
-            "read" => meow.read(1, 3),
             _ => {}
         }
     }

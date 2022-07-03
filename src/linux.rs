@@ -1,8 +1,6 @@
 use std::os::unix::prelude::FileExt;
 
-use crate::{error::Result, mem::{MemExt, Chunks}};
-
-const CHUNK_SIZE: usize = 8192;
+use crate::{error::Result, mem::MemExt};
 
 pub struct Mem<'a, T: FileExt> {
     pub handle: &'a T,

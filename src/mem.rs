@@ -2,7 +2,7 @@ use crate::error::Result;
 
 pub trait MemExt {
     fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>>;
-    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;    
+    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
 }
 
 #[derive(Debug)]
