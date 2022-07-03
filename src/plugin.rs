@@ -1,20 +1,44 @@
 use std::{collections::HashMap, path::Path, rc::Rc};
 
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    maps::Maps,
+    mem::MemExt,
+};
 use libloading::{Library, Symbol};
 
 pub trait Plugin {
     fn name(&self) -> &'static str;
-    fn call(&self, args: &str,meow: Meow);
+    fn call(&self, args: &str, meow: Meow);
 }
 
-pub struct Meow {
-    pub pid:u32
+pub struct Meow<'a> {
+    pub pid: u32,
+    pub maps: Vec<Maps>,
+    pub handle: &'a dyn MemExt,
 }
 
-impl Meow {
-    pub fn get_pid(&self)->u32{
+impl<'a> Meow<'a> {
+    pub fn new(pid: u32, maps: Vec<Maps>, handle: &'a dyn MemExt) -> Meow {
+        Self { pid, maps, handle }
+    }
+
+    pub fn get_pid(&self) -> u32 {
         self.pid
+    }
+
+    pub fn getmaps(&self) -> Vec<Maps> {
+        self.maps.clone()
+    }
+
+    pub fn read(&self, addr: usize, size: usize) {
+        let v = self.handle.read(addr, size).unwrap();
+        println!("{:?}", v)
+    }
+
+    pub fn write(&self, addr: usize, payload: &[u8]) {
+        let v = self.handle.write(addr, payload);
+        println!("{:?}", v)
     }
 }
 

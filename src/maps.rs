@@ -1,11 +1,11 @@
 use crate::error::{Error, Result};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Maps {
-    range_start: usize,
-    range_end: usize,
-    flags: String,
-    pathname: String,
+    pub range_start: usize,
+    pub range_end: usize,
+    pub flags: String,
+    pub pathname: String,
 }
 
 impl Maps {

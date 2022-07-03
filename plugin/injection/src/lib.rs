@@ -12,8 +12,10 @@ impl Plugin for Injection {
         match args {
             "version" => println!("v0.1.0"),
             "info" => println!("injection plugin linux x64"),
-            "getpid"=>println!("{}",meow.get_pid()),
-            _ => {}
+            "getpid" => println!("{}", meow.get_pid()),
+            "getmaps" => println!("{:?}", meow.getmaps()),
+            "read" => meow.read(1, 3),
+            _ => println!("无效命令")
         }
     }
 }

@@ -1,16 +1,52 @@
-pub struct Meow {
-    pid:u32
+#[derive(Debug)]
+pub enum Error {
+    IoError(std::io::Error),
 }
 
-impl Meow {
-    pub fn get_pid(&self)->u32{
-        self.pid
-    }
-}
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 pub trait Plugin {
     fn name(&self) -> &'static str;
-    fn call(&self, args: &str,meow: Meow);
+    fn call(&self, args: &str, meow: Meow);
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Maps {
+    pub range_start: usize,
+    pub range_end: usize,
+    pub flags: String,
+    pub pathname: String,
+}
+
+pub struct Meow<'a> {
+    pub pid: u32,
+    pub maps: Vec<Maps>,
+    pub handle: &'a dyn MemExt,
+}
+
+pub trait MemExt {
+    fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>>;
+    fn write(&self, addr: usize, payload: &[u8]) -> Result<usize>;
+}
+
+impl<'a> Meow<'a> {
+    pub fn get_pid(&self) -> u32 {
+        self.pid
+    }
+
+    pub fn getmaps(&self) -> Vec<Maps> {
+        self.maps.clone()
+    }
+
+    pub fn read(&self, addr: usize, size: usize) {
+        let v = self.handle.read(addr, size).unwrap();
+        println!("{:?}", v)
+    }
+
+    pub fn write(&self, addr: usize, payload: &[u8]) {
+        let v = self.handle.write(addr, payload);
+        println!("{:?}", v)
+    }
 }
 
 #[macro_export(local_inner_macros)]
