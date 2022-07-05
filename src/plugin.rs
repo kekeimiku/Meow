@@ -50,7 +50,7 @@ impl PluginManager<'_> {
         self.extends
             .get(target)
             .cloned()
-            .ok_or_else(|| Error::New("without this plugin".into()))
+            .ok_or(Error::New("without this plugin"))
     }
 
     pub fn unload() {

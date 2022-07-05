@@ -82,7 +82,7 @@ mod tests {
     fn test_chunk_read() {
         let tmpfile = tempfile::tempfile().unwrap();
         let mem = Mem::from(tmpfile);
-        mem.write(0, b"1234567890").unwrap();
+        mem.write(0, &[49, 50, 51, 52, 53, 54, 55, 56, 57, 48]).unwrap();
         let chunk = Chunks::new(&mem, 2, 10, 3);
         let v = chunk.into_iter().map(|x| x.unwrap()).collect::<Vec<_>>();
         assert_eq!(v, vec![vec![51, 52, 53], vec![54, 55, 56], vec![57, 48]])

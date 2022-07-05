@@ -6,7 +6,7 @@ pub enum Error {
     ParseIntError(std::num::ParseIntError),
     ParseMapsError,
     UseExtError(libloading::Error),
-    New(String),
+    New(&'static str),
 }
 
 impl std::fmt::Display for Error {
