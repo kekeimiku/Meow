@@ -38,7 +38,7 @@ pub fn find_addr_by_region<T: MemExt>(
     value: &[u8],
 ) -> Result<Vec<usize>> {
     let mut num = 0;
-    Chunks::new(handle, start, end, CHUNK_SIZE)
+    Chunks::from(handle, start, end, CHUNK_SIZE)
         .into_iter()
         .try_fold(Vec::default(), |mut init, next| {
             init.extend(
@@ -60,6 +60,7 @@ mod tests {
 
     use super::{find_addr_by_region, MemExt};
 
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn test_find_addr_by_region_linux() {
         let tmpfile = tempfile::tempfile().unwrap();
@@ -69,5 +70,10 @@ mod tests {
         let v = find_addr_by_region(&mem, 2, 10, &[51, 51]).unwrap();
 
         assert_eq!(v, vec![2, 6])
+    }
+
+    #[test]
+    fn test_find_addr_by_region_windows() {
+    
     }
 }
