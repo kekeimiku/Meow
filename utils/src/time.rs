@@ -7,11 +7,11 @@ use std::{
 
 #[derive(Default)]
 pub struct Time {
-    sec: i32,
-    min: i32,
-    hour: i32,
-    day: i32,
-    month: i32,
+    sec: u8,
+    min: u8,
+    hour: u8,
+    day: u8,
+    month: u8,
     year: i32,
 }
 
@@ -20,23 +20,23 @@ impl Time {
         self.year
     }
 
-    pub fn month(&self) -> i32 {
+    pub fn month(&self) -> u8 {
         self.month
     }
 
-    pub fn day(&self) -> i32 {
+    pub fn day(&self) -> u8 {
         self.day
     }
 
-    pub fn hour(&self) -> i32 {
+    pub fn hour(&self) -> u8 {
         self.hour
     }
 
-    pub fn min(&self) -> i32 {
+    pub fn min(&self) -> u8 {
         self.min
     }
 
-    pub fn sec(&self) -> i32 {
+    pub fn sec(&self) -> u8 {
         self.sec
     }
 }
@@ -64,9 +64,9 @@ fn seconds_to_datetime(ts: i64, tm: &mut Time) {
     let dayclock = ts % 86400;
     let mut dayno = ts / 86400;
 
-    tm.sec = (dayclock % 60) as i32;
-    tm.min = ((dayclock % 3600) / 60) as i32;
-    tm.hour = (dayclock / 3600) as i32;
+    tm.sec = (dayclock % 60) as u8;
+    tm.min = ((dayclock % 3600) / 60) as u8;
+    tm.hour = (dayclock / 3600) as u8;
 
     loop {
         let yearsize = if leapyear(year) { 366 } else { 365 };
@@ -84,8 +84,8 @@ fn seconds_to_datetime(ts: i64, tm: &mut Time) {
         dayno -= MONTHS[if leapyear(year) { 1 } else { 0 }][mon];
         mon += 1;
     }
-    tm.month = mon as i32 + 1;
-    tm.day = dayno as i32 + 1;
+    tm.month = mon as u8 + 1;
+    tm.day = dayno as u8 + 1;
 }
 
 pub fn get_timestamp() -> u64 {

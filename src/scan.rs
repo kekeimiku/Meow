@@ -4,17 +4,17 @@ use crate::{
     region::RegionExt,
 };
 
-pub struct Scan<'a, T: MemExt, R: RegionExt> {
-    handle: &'a T,
+pub struct Scan<'a, H: MemExt, R: RegionExt> {
+    handle: &'a H,
     region: &'a R,
 }
 
-impl<'a, T, R> Scan<'_, T, R>
+impl<'a, H, R> Scan<'_, H, R>
 where
-    T: MemExt,
+    H: MemExt,
     R: RegionExt,
 {
-    pub fn from(handle: &'a T, region: &'a R) -> Result<Scan<'a, T, R>> {
+    pub fn from(handle: &'a H, region: &'a R) -> Result<Scan<'a, H, R>> {
         Ok(Scan { handle, region })
     }
 
@@ -61,7 +61,7 @@ mod tests {
     use super::{find_addr_by_region, MemExt};
 
     #[test]
-    fn test_find_addr_by_region() {
+    fn test_find_addr_by_region_linux() {
         let tmpfile = tempfile::tempfile().unwrap();
         let mem = Mem::from(tmpfile);
         mem.write(0, &[49, 49, 50, 50, 51, 51, 52, 52, 51, 51, 53, 53])
