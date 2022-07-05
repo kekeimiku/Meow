@@ -6,7 +6,7 @@ pub trait MemExt {
 }
 
 #[derive(Debug)]
-pub struct Chunks<'a, T: MemExt + ?Sized> {
+pub struct Chunks<'a, T: MemExt> {
     mem: &'a T,
     start: usize,
     size: usize,
@@ -16,7 +16,7 @@ pub struct Chunks<'a, T: MemExt + ?Sized> {
 
 impl<'a, T> Chunks<'a, T>
 where
-    T: MemExt + ?Sized,
+    T: MemExt,
 {
     pub fn new(mem: &'a T, start: usize, end: usize, mut size: usize) -> Self {
         let mut last = 0;
@@ -42,7 +42,7 @@ where
 
 impl<T> Iterator for Chunks<'_, T>
 where
-    T: MemExt + ?Sized,
+    T: MemExt,
 {
     type Item = Result<Vec<u8>>;
 
@@ -69,5 +69,22 @@ where
         }
 
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::platform::Mem;
+
+    use super::{Chunks, MemExt};
+
+    #[test]
+    fn test_chunk_read() {
+        let tmpfile = tempfile::tempfile().unwrap();
+        let mem = Mem::from(tmpfile);
+        mem.write(0, b"1234567890").unwrap();
+        let chunk = Chunks::new(&mem, 2, 10, 3);
+        let v = chunk.into_iter().map(|x| x.unwrap()).collect::<Vec<_>>();
+        assert_eq!(v, vec![vec![51, 52, 53], vec![54, 55, 56], vec![57, 48]])
     }
 }

@@ -1,3 +1,5 @@
+// TODO refactor
+
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),

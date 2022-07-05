@@ -9,14 +9,18 @@ edition = "2021"
 libloading = "0.7.3"
 
 [dependencies.utils]
-version = "*"
+version = "0.1.0"
 path = "utils"
 features = ["log", "dev"]
+
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.36.1"
+
+[dev-dependencies]
+tempfile = "3.3.0"
 
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-
-[profile.dev]

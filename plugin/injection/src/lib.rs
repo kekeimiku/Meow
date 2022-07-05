@@ -1,4 +1,4 @@
-use sdk::{plugin_start, Plugin};
+use sdk::Plugin;
 
 #[derive(Debug, Default)]
 struct Injection {}
@@ -17,4 +17,9 @@ impl Plugin for Injection {
     }
 }
 
-plugin_start!(Injection, Injection::default);
+#[no_mangle]
+pub extern "C" fn plugin_start() -> *mut dyn Plugin {
+    let object = Injection::default();
+    let boxed: Box<dyn Plugin> = Box::new(object);
+    Box::into_raw(boxed)
+}
