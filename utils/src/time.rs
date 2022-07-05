@@ -5,7 +5,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Time {
     sec: u8,
     min: u8,
