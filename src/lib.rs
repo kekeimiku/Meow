@@ -1,5 +1,3 @@
-#![feature(is_some_with)]
-
 pub mod error;
 pub mod mem;
 pub mod plugin;

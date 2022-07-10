@@ -2,6 +2,7 @@ use std::{collections::HashMap, fs, path::Path, rc::Rc};
 
 use crate::error::{Error, Result};
 use libloading::{Library, Symbol};
+use utils::debug;
 
 // TODO
 pub trait Plugin {
@@ -23,9 +24,9 @@ impl PluginManager<'_> {
         let dir = fs::read_dir(path)?;
         for entry in dir {
             let entry = entry?.path();
-            if entry.extension().is_some_and(|x| *x == "so") {
-                self.load(entry)?;
-            };
+            if entry.extension().map_or(false, |n|n == "so"){
+                debug!("{}",entry.display().to_string());
+            }
         }
         Ok(())
     }

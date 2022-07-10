@@ -18,9 +18,9 @@ where
         Ok(Scan { handle, region })
     }
 
-    pub fn find(&self, value: &[u8]) -> Result<Vec<usize>> {
+    pub fn find(&self, value: &[u8]) -> Result<Vec<Vec<u16>>> {
         let region = self.region;
-        find_addr_by_region(self.handle, region.start(), region.end(), value)
+        scan_region(self.handle, region.start(), region.end(), value)
     }
 }
 
@@ -54,7 +54,7 @@ pub fn find_addr_by_region<T: MemExt>(
         })
 }
 
-pub fn scan_region<T: MemExt>(handle: &T, start: usize, end: usize, value: &[u8]) -> Result<Vec<Vec<usize>>> {
+pub fn scan_region<T: MemExt>(handle: &T, start: usize, end: usize, value: &[u8]) -> Result<Vec<Vec<u16>>> {
     Chunks::from(handle, start, end, CHUNK_SIZE)
         .into_iter()
         .try_fold(Vec::default(), |mut init, next| {
@@ -63,8 +63,14 @@ pub fn scan_region<T: MemExt>(handle: &T, start: usize, end: usize, value: &[u8]
                     .windows(value.len())
                     .enumerate()
                     .step_by(value.len())
-                    .filter_map(|(k, v)| if v == value { Some(k) } else { None })
-                    .collect::<Vec<_>>(),
+                    .filter_map(|(k, v)| {
+                        if v == value {
+                            Some(k.try_into().unwrap())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect(),
             );
             Ok(init)
         })

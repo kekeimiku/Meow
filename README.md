@@ -56,7 +56,7 @@ meow 分为 core 以及 plugin 两部分，core 为各平台提供 读/写/查�
 
 - [ ] pointer，查找地址指针
 
-- [ ] editor 一个终端编辑器，用于直接可视化编辑内存区域
+- [ ] tview 一个终端视图，用于直接可视化查看与编辑指定地址附近区域
 
 ## Thanks for free JetBrains Open Source license
 
