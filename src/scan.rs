@@ -1,3 +1,5 @@
+use utils::debug;
+
 use crate::{
     error::Result,
     mem::{Chunks, MemExt},
@@ -55,7 +57,7 @@ pub fn find_addr_by_region<T: MemExt>(
 }
 
 pub fn scan_region<T: MemExt>(handle: &T, start: usize, end: usize, value: &[u8]) -> Result<Vec<Vec<u16>>> {
-    Chunks::from(handle, start, end, CHUNK_SIZE)
+    Chunks::from(handle, start, end, 4)
         .into_iter()
         .try_fold(Vec::default(), |mut init, next| {
             init.push(
@@ -63,17 +65,32 @@ pub fn scan_region<T: MemExt>(handle: &T, start: usize, end: usize, value: &[u8]
                     .windows(value.len())
                     .enumerate()
                     .step_by(value.len())
-                    .filter_map(|(k, v)| {
-                        if v == value {
-                            Some(k.try_into().unwrap())
-                        } else {
-                            None
-                        }
-                    })
+                    .filter_map(|(k, v)| if v == value { Some(k as u16) } else { None })
                     .collect(),
             );
             Ok(init)
         })
+}
+
+pub fn rescan_region<T: MemExt>(
+    handle: &T,
+    start: usize,
+    end: usize,
+    value: &[u8],
+    vec: &mut [Vec<u16>],
+) -> Result<()> {
+    let mem = Chunks::from(handle, start, end, 4);
+    for (mem, k) in mem.into_iter().zip(0..vec.len()) {
+        for offset in (0..vec[k].len()).rev() {
+            let end = offset + value.len();
+            let data = &mem.as_deref().unwrap()[offset..end];
+            if data != value {
+                vec[k].swap_remove(offset);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
