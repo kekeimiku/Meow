@@ -51,7 +51,15 @@ pub fn start() -> Result<()> {
                     rescan_region(&handle, 0, 10, v1, &mut app.vec).unwrap();
                 }
                 "p" => {
-                    debug!("{:?}", app.vec);
+                    let mut num = 0;
+                    let new = app.vec.iter().fold(Vec::default(), |mut init, next| {
+                        init.extend(next.iter().map(|v| v + num).collect::<Vec<_>>());
+                        num += 4;
+                        init
+                    });
+
+                    debug!("app.vec: {:?}", app.vec);
+                    debug!("new: {:?}", new);
                 }
 
                 "len" => {

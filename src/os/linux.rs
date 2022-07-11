@@ -82,15 +82,12 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<Region>> {
         let range_start = range_split.next().ok_or_else(e)?;
         let range_end = range_split.next().ok_or_else(e)?;
         let flags = split.next().ok_or_else(e)?;
-        split.next().ok_or_else(e)?;
-        split.next().ok_or_else(e)?;
-        split.next().ok_or_else(e)?;
 
         vec.push(Region {
             range_start: usize::from_str_radix(range_start, 16)?,
             range_end: usize::from_str_radix(range_end, 16)?,
             flags: flags.to_string(),
-            pathname: split.collect::<Vec<&str>>().join(" "),
+            pathname: split.by_ref().skip(3).collect::<Vec<&str>>().join(" "),
         });
     }
     Ok(vec)
