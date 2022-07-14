@@ -2,7 +2,4 @@
 image = "rustembedded/cross:aarch64-linux-android"
 
 [target.armv7-linux-androideabi]
-image = "rustembedded/cross:armv7-linux-androideabi"
-
-[target.armv7-unknown-linux-musleabihf]
-image = "rustembedded/cross:armv7-unknown-linux-musleabihf"
+image = "ghcr.io/cross-rs/armv7-linux-androideabi:edge"

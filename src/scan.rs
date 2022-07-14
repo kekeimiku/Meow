@@ -9,6 +9,7 @@ use crate::{
 pub struct Scan<'a, H: MemExt, R: RegionExt> {
     handle: &'a H,
     region: &'a R,
+    // TODO 是否不应该储存在这个struct中?
     tmp: Vec<Vec<u16>>,
 }
 
@@ -116,17 +117,15 @@ fn rescan_region<T: MemExt>(
 
 #[cfg(test)]
 mod tests {
-    use crate::platform::Mem;
-
-    use super::MemExt;
+    use super::{MemExt, Scan};
+    use crate::{
+        platform::{Mem, Region},
+        region::RegionExt,
+    };
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn test_find_addr_by_region_linux() {
-        use crate::{platform::Region, region::RegionExt};
-
-        use super::Scan;
-
         let mem = Mem::new(tempfile::tempfile().unwrap());
         mem.write(0, &[49, 49, 50, 50, 51, 51, 52, 52, 51, 51, 53, 53])
             .unwrap();
