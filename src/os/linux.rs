@@ -14,8 +14,8 @@ impl<T> Mem<T>
 where
     T: FileExt,
 {
-    pub fn from(handle: T) -> Mem<T> {
-        Self { handle }
+    pub fn new(handle: T) -> Mem<T> {
+        Mem { handle }
     }
 }
 
@@ -36,7 +36,7 @@ where
 }
 
 // TODO refactor
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct Region {
     pub range_start: usize,
     pub range_end: usize,

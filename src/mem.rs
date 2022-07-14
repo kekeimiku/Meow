@@ -18,7 +18,7 @@ impl<'a, T> Chunks<'a, T>
 where
     T: MemExt,
 {
-    pub fn from(mem: &'a T, start: usize, end: usize, mut size: usize) -> Self {
+    pub fn new(mem: &'a T, start: usize, end: usize, mut size: usize) -> Self {
         let mut last = 0;
         let mut num = 1;
         if end < start {
@@ -75,17 +75,15 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::platform::Mem;
-
     use super::{Chunks, MemExt};
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn test_chunk_read_linux() {
-        let handle = tempfile::tempfile().unwrap();
-        let mem = Mem::from(handle);
+        use crate::platform::Mem;
+        let mem = Mem::new(tempfile::tempfile().unwrap());
         mem.write(0, &[49, 50, 51, 52, 53, 54, 55, 56, 57, 48]).unwrap();
-        let chunk = Chunks::from(&mem, 2, 10, 3);
+        let chunk = Chunks::new(&mem, 2, 10, 3);
         let v = chunk.into_iter().map(|x| x.unwrap()).collect::<Vec<_>>();
         assert_eq!(v, vec![vec![51, 52, 53], vec![54, 55, 56], vec![57, 48]])
     }

@@ -24,8 +24,8 @@ impl PluginManager<'_> {
         let dir = fs::read_dir(path)?;
         for entry in dir {
             let entry = entry?.path();
-            if entry.extension().map_or(false, |n|n == "so"){
-                debug!("{}",entry.display().to_string());
+            if entry.extension().map_or(false, |n| n == "so") {
+                debug!("{}", entry.display().to_string());
             }
         }
         Ok(())
