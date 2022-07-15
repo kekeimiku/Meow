@@ -5,12 +5,14 @@ use std::{
 };
 
 use utils::info;
+use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
 
 use crate::{
     error::Result,
-    platform::{parse_proc_maps, Mem, Region},
+    mem::MemExt,
+    platform::{Mem, Region},
     region::RegionExt,
-    scan::Scan, mem::MemExt,
+    scan::Scan,
 };
 
 pub fn prompt(name: &str) -> Result<Vec<String>> {
@@ -26,15 +28,22 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
 }
 
 pub fn start() -> Result<()> {
-    let pid = env::args().nth(1).unwrap();
-    let handle = Mem::new(File::open(format!("/proc/{}/mem", pid)).unwrap());
-    let v = parse_proc_maps(&fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap()).unwrap();
-    let region = v
-        .iter()
-        .filter(|x| x.pathname() == "[anon:libc_malloc]")
-        .collect::<Vec<_>>()[0];
+    let pid = env::args().nth(1).unwrap().parse::<u32>().unwrap();
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    let m = File::open(format!("/proc/{}/mem", pid));
 
-    let mut app = Scan::new(&handle, region).unwrap();
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    let region = parse_proc_maps(&fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap()).unwrap()[0];
+
+    #[cfg(target_os = "windows")]
+    let m = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
+
+    #[cfg(target_os = "windows")]
+    let region = crate::platform::get_region_range(m).unwrap()[1];
+
+    let handle = Mem::new(m);
+
+    let mut app = Scan::new(&handle, &region).unwrap();
 
     loop {
         let prompt = prompt("> ")?;

@@ -6,7 +6,10 @@ use windows_sys::Win32::{
     Foundation::{GetLastError, HANDLE},
     System::{
         Diagnostics::Debug::{ReadProcessMemory, WriteProcessMemory},
-        Memory::{VirtualQueryEx, MEMORY_BASIC_INFORMATION},
+        Memory::{
+            VirtualQueryEx, MEMORY_BASIC_INFORMATION, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY,
+            PAGE_READWRITE, PAGE_WRITECOPY,
+        },
     },
 };
 
@@ -21,7 +24,7 @@ pub struct Mem {
 }
 
 impl Mem {
-    pub fn from(handle: HANDLE) -> Mem {
+    pub fn new(handle: HANDLE) -> Mem {
         Self { handle }
     }
 }
@@ -29,14 +32,19 @@ impl Mem {
 impl MemExt for Mem {
     fn read(&self, addr: usize, size: usize) -> Result<Vec<u8>> {
         let mut buf = vec![0; size];
-        // TODO 错误处理
-        unsafe { ReadProcessMemory(self.handle, addr as _, buf.as_mut_ptr() as *mut _, size, null_mut()) };
+        let code = unsafe {
+            ReadProcessMemory(self.handle, addr as _, buf.as_mut_ptr() as *mut _, size, null_mut())
+        };
+        if code == 0 {
+            let error = unsafe { GetLastError() };
+            return Err(Error::WindowsGetLastError(error));
+        }
+
         Ok(buf)
     }
 
     fn write(&self, addr: usize, payload: &[u8]) -> Result<usize> {
-        // TODO 错误处理
-        unsafe {
+        let code = unsafe {
             WriteProcessMemory(
                 self.handle,
                 addr as *mut _,
@@ -45,6 +53,11 @@ impl MemExt for Mem {
                 null_mut(),
             )
         };
+
+        if code == 0 {
+            let error = unsafe { GetLastError() };
+            return Err(Error::WindowsGetLastError(error));
+        }
 
         Ok(payload.len())
     }
@@ -64,25 +77,9 @@ impl RegionExt for Region {
     fn end(&self) -> usize {
         self.BaseAddress as usize + self.RegionSize
     }
-
-    fn pathname(&self) -> &str {
-        todo!()
-    }
-
-    fn is_exec(&self) -> bool {
-        todo!()
-    }
-
-    fn is_write(&self) -> bool {
-        todo!()
-    }
-
-    fn is_read(&self) -> bool {
-        todo!()
-    }
 }
 
-pub fn get_map_range(handle: HANDLE) -> Result<Vec<Region>> {
+pub fn get_region_range(handle: HANDLE) -> Result<Vec<Region>> {
     let mut base: usize = 0;
     let mut regions = Vec::new();
     let mut info = mem::MaybeUninit::uninit();
@@ -90,13 +87,15 @@ pub fn get_map_range(handle: HANDLE) -> Result<Vec<Region>> {
     while unsafe { VirtualQueryEx(handle, base as *const _, info.as_mut_ptr(), len) } > 0 {
         let info = unsafe { info.assume_init() };
         base = info.BaseAddress as usize + info.RegionSize;
-        regions.push(info);
+        let mask = PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY | PAGE_READWRITE | PAGE_WRITECOPY;
+        if (info.Protect & mask) != 0 {
+            regions.push(info);
+        }
     }
 
-    if regions.len() < 1 {
+    if regions.is_empty() {
         let error = unsafe { GetLastError() };
-        assert_ne!(regions.len(), 0, "{:?}", error);
-        return Err(Error::New("get regions error"));
+        return Err(Error::WindowsGetLastError(error));
     }
 
     Ok(regions)

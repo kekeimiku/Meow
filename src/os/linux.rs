@@ -44,6 +44,21 @@ pub struct Region {
     pub pathname: String,
 }
 
+impl Region {
+    pub fn pathname(&self) -> &str {
+        &self.pathname
+    }
+    pub fn is_exec(&self) -> bool {
+        &self.flags[2..3] == "x"
+    }
+    pub fn is_write(&self) -> bool {
+        &self.flags[1..2] == "w"
+    }
+    pub fn is_read(&self) -> bool {
+        &self.flags[0..1] == "r"
+    }
+}
+
 impl RegionExt for Region {
     fn size(&self) -> usize {
         self.range_end - self.range_start
@@ -53,18 +68,6 @@ impl RegionExt for Region {
     }
     fn end(&self) -> usize {
         self.range_end
-    }
-    fn pathname(&self) -> &str {
-        &self.pathname
-    }
-    fn is_exec(&self) -> bool {
-        &self.flags[2..3] == "x"
-    }
-    fn is_write(&self) -> bool {
-        &self.flags[1..2] == "w"
-    }
-    fn is_read(&self) -> bool {
-        &self.flags[0..1] == "r"
     }
 }
 

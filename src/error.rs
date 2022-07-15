@@ -7,18 +7,7 @@ pub enum Error {
     ParseMapsError,
     UseExtError(libloading::Error),
     New(&'static str),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::ParseIntError(e) => write!(f, "Parse int error: {}", e),
-            Error::IoError(e) => write!(f, "Io error: {}", e),
-            Error::ParseMapsError => write!(f, "failed to parse maps"),
-            Error::UseExtError(e) => write!(f, "libloading error: {}", e),
-            Error::New(e) => write!(f, "{}", e),
-        }
-    }
+    WindowsGetLastError(u32),
 }
 
 impl From<std::num::ParseIntError> for Error {

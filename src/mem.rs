@@ -75,8 +75,6 @@ where
 #[cfg(test)]
 mod tests {
 
-    use super::{Chunks, MemExt};
-
     #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn test_chunk_read_linux() {
@@ -93,7 +91,7 @@ mod tests {
     fn test_chunk_read_windows() {
         use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
 
-        let handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, 1) };
+        let _handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, 1) };
         // let mem = Mem::from(handle);
         // mem.write(0, &[49, 50, 51, 52, 53, 54, 55, 56, 57, 48]).unwrap();
         // let chunk = Chunks::from(&mem, 2, 10, 3);

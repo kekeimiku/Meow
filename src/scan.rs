@@ -1,4 +1,4 @@
-use utils::{debug, info};
+use utils::info;
 
 use crate::{
     error::Result,
@@ -48,7 +48,6 @@ where
 
     // TODO 不要全部列出，可选列出指定数量，类似分页的效果
     pub fn list(&self, offset: usize) -> Result<Vec<usize>> {
-        debug!("{:?}", self.tmp);
         let mut num = 0;
         let new = self.tmp.iter().fold(Vec::default(), |mut init, next| {
             init.extend(
@@ -67,6 +66,11 @@ where
     }
 }
 
+// 这使扫描和储存结果的内存占用很低
+// TODO 如果我们需要储存扫描结果到硬盘，我们将允许它超过 u16::max ，例如设置为8mb。
+// 这将在不占用过多内存的情况下加快扫描速度 减少syscall次数
+// TODO 储存到硬盘的格式？如何读取？顺序？
+// TODO 也许储存在内存还是硬盘应该可选
 const CHUNK_SIZE: usize = 63488;
 
 fn scan_region<T: MemExt>(handle: &T, start: usize, end: usize, value: &[u8]) -> Result<Vec<Vec<u16>>> {
@@ -115,13 +119,10 @@ fn rescan_region<T: MemExt>(
     Ok(())
 }
 
+
+
 #[cfg(test)]
 mod tests {
-    use super::{MemExt, Scan};
-    use crate::{
-        platform::{Mem, Region},
-        region::RegionExt,
-    };
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
@@ -145,5 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn test_find_addr_by_region_windows() {}
+    fn test_find_addr_by_region_windows() {
+        // TODO
+    }
 }
