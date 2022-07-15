@@ -119,14 +119,19 @@ fn rescan_region<T: MemExt>(
     Ok(())
 }
 
-
-
 #[cfg(test)]
 mod tests {
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn test_find_addr_by_region_linux() {
+        use crate::{
+            mem::MemExt,
+            platform::{Mem, Region},
+            region::RegionExt,
+            scan::Scan,
+        };
+
         let mem = Mem::new(tempfile::tempfile().unwrap());
         mem.write(0, &[49, 49, 50, 50, 51, 51, 52, 52, 51, 51, 53, 53])
             .unwrap();

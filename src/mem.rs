@@ -78,7 +78,10 @@ mod tests {
     #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn test_chunk_read_linux() {
-        use crate::platform::Mem;
+        use crate::{
+            mem::{Chunks, MemExt},
+            platform::Mem,
+        };
         let mem = Mem::new(tempfile::tempfile().unwrap());
         mem.write(0, &[49, 50, 51, 52, 53, 54, 55, 56, 57, 48]).unwrap();
         let chunk = Chunks::new(&mem, 2, 10, 3);
