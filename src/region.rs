@@ -1,4 +1,4 @@
-pub trait RegionExt {
+pub trait InfoExt {
     fn size(&self) -> usize;
     fn start(&self) -> usize;
     fn end(&self) -> usize;

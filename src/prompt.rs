@@ -1,14 +1,13 @@
 use std::{
     env,
-    fs::{self, File},
+    fs::{self, File, OpenOptions},
 };
 
-use utils::info;
-
+use utils::{debug, info};
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
 
-use crate::{error::Result, mem::MemExt, platform::Mem, region::RegionExt, scan::Scan};
+use crate::{error::Result, mem::MemExt, platform::Mem, scan::Scan};
 
 pub fn prompt(name: &str) -> Result<Vec<String>> {
     let mut line = String::new();
@@ -25,14 +24,18 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
 pub fn start() -> Result<()> {
     let pid = env::args().nth(1).unwrap().parse::<u32>().unwrap();
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let m = File::open(format!("/proc/{}/mem", pid)).unwrap();
+    let m = OpenOptions::new().read(true).write(true).open(format!("/proc/{}/mem", pid)).unwrap();
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     let v = crate::platform::parse_proc_maps(&fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap())
-        .unwrap();
+        .unwrap()
+        .into_iter()
+        .filter(|m| m.is_write() && m.is_read()).collect::<Vec<_>>();
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let region = &v[0];
+    let region = &v;
+
+    debug!("{}", region.len());
 
     #[cfg(target_os = "windows")]
     let m = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
@@ -63,20 +66,23 @@ pub fn start() -> Result<()> {
                     info!("{}", app.len());
                 }
                 "p" => {
-                    let v = app.list(region.start()).unwrap();
-                    v.iter().for_each(|x| {
-                        info!("0x{:x}", x);
-                    });
+                    app.list().unwrap();
                 }
 
                 "len" => {
-                    info!("{}", app.len());
+                    // info!("{}", app.len());
                 }
 
                 "w" => {
                     let arg1 = hexstr_to_usize(input[1]).unwrap();
-                    let arg2 = input[1].parse::<i32>().unwrap().to_ne_bytes();
+                    let arg2 = input[2].parse::<i32>().unwrap().to_ne_bytes();
                     handle.write(arg1, &arg2).unwrap();
+                }
+                "r"=> {
+                    let arg1 = hexstr_to_usize(input[1]).unwrap();
+                    debug!("{}",arg1);
+                    let a = handle.read(arg1, 4).unwrap();
+                    debug!("{}",i32::from_ne_bytes(a.try_into().unwrap()))
                 }
                 "q" => {
                     break;

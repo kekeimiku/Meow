@@ -3,7 +3,7 @@ use std::os::unix::prelude::FileExt;
 use crate::{
     error::{Error, Result},
     mem::MemExt,
-    region::RegionExt,
+    region::InfoExt,
 };
 
 pub struct Mem<T: FileExt> {
@@ -36,7 +36,7 @@ where
 }
 
 // TODO refactor
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Region {
     pub range_start: usize,
     pub range_end: usize,
@@ -59,7 +59,7 @@ impl Region {
     }
 }
 
-impl RegionExt for Region {
+impl InfoExt for Region {
     fn size(&self) -> usize {
         self.range_end - self.range_start
     }
@@ -98,7 +98,7 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<Region>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_proc_maps, RegionExt};
+    use super::{parse_proc_maps, InfoExt};
 
     #[test]
     fn test_linux_parse_proc_maps() {
