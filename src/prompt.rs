@@ -55,13 +55,13 @@ pub fn start() -> Result<()> {
         } else {
             match input[0] {
                 "find" => {
-                    let arg1 = input[1].parse::<i32>().unwrap().to_ne_bytes();
+                    let arg1 = input[1].parse::<u8>().unwrap().to_ne_bytes();
                     app.find(&arg1)?;
                     info!("{}", app.len());
                 }
 
                 "re" => {
-                    let arg1 = input[1].parse::<i32>().unwrap().to_ne_bytes();
+                    let arg1 = input[1].parse::<u8>().unwrap().to_ne_bytes();
                     app.refind(&arg1)?;
                     info!("{}", app.len());
                 }

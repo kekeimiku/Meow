@@ -38,9 +38,7 @@ where
         let mut v = Vec::new();
 
         self.region.into_iter().for_each(|region| {
-            debug!("aa");
             let local: Vec<_> = scan_region(self.handle, region.start(), region.end(), value).collect();
-            debug!("{}", local.len());
             let data = RegionChunkData { info: region, local };
             v.push(data);
         });
