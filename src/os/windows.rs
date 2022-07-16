@@ -16,7 +16,7 @@ use windows_sys::Win32::{
 use crate::{
     error::{Error, Result},
     mem::MemExt,
-    region::RegionExt,
+    region::InfoExt,
 };
 
 pub struct Mem {
@@ -65,7 +65,7 @@ impl MemExt for Mem {
 
 pub type Region = MEMORY_BASIC_INFORMATION;
 
-impl RegionExt for Region {
+impl InfoExt for Region {
     fn size(&self) -> usize {
         self.RegionSize
     }

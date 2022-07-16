@@ -35,17 +35,15 @@ pub fn start() -> Result<()> {
     #[cfg(any(target_os = "linux", target_os = "android"))]
     let region = &v;
 
-    debug!("{}", region.len());
-
     #[cfg(target_os = "windows")]
     let m = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
 
     #[cfg(target_os = "windows")]
-    let region = crate::platform::get_region_range(m).unwrap()[1];
+    let region = crate::platform::get_region_range(m).unwrap();
 
     let handle = Mem::new(m);
 
-    let mut app = Scan::new(&handle, region).unwrap();
+    let mut app = Scan::new(&handle, &region).unwrap();
 
     loop {
         let prompt = prompt("> ")?;
