@@ -2,6 +2,7 @@
 
 use std::{mem, ptr::null_mut};
 
+use utils::warn;
 use windows_sys::Win32::{
     Foundation::{GetLastError, HANDLE},
     System::{
@@ -37,7 +38,9 @@ impl MemExt for Mem {
         };
         if code == 0 {
             let error = unsafe { GetLastError() };
-            return Err(Error::WindowsGetLastError(error));
+            warn!("err: {}",error);
+            // todo 处理这个错误，它会导致内存泄漏....
+            // return Err(Error::WindowsGetLastError(error));
         }
 
         Ok(buf)
@@ -56,7 +59,9 @@ impl MemExt for Mem {
 
         if code == 0 {
             let error = unsafe { GetLastError() };
-            return Err(Error::WindowsGetLastError(error));
+            warn!("err: {}",error);
+            // todo 处理这个错误，它会导致内存泄漏....
+            // return Err(Error::WindowsGetLastError(error));
         }
 
         Ok(payload.len())

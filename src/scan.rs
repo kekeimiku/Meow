@@ -1,4 +1,4 @@
-use utils::{debug, info};
+use utils::info;
 
 use crate::{
     error::Result,
@@ -34,7 +34,6 @@ where
     }
 
     pub fn find(&mut self, value: &[u8]) -> Result<()> {
-        debug!("ss");
         let mut v = Vec::new();
 
         self.region.iter().for_each(|region| {
@@ -105,7 +104,7 @@ fn scan_region<'a, T: MemExt>(
         .into_iter()
         .map(move |v| {
             // todo 处理这个错误，它会导致内存泄漏....
-            v.unwrap_or_default()
+            v.unwrap()
                 .windows(value.len())
                 .enumerate()
                 .step_by(value.len())

@@ -1,4 +1,4 @@
-use std::{env, fs::OpenOptions};
+use std::env;
 
 use utils::{debug, info};
 #[cfg(target_os = "windows")]
@@ -46,7 +46,7 @@ pub fn start() -> Result<()> {
 
     let handle = Mem::new(m);
 
-    let mut app = Scan::new(&handle, region).unwrap();
+    let mut app = Scan::new(&handle, &region).unwrap();
 
     loop {
         let prompt = prompt("> ")?;
@@ -56,13 +56,13 @@ pub fn start() -> Result<()> {
         } else {
             match input[0] {
                 "find" => {
-                    let arg1 = input[1].parse::<u8>().unwrap().to_ne_bytes();
+                    let arg1 = input[1].parse::<i32>().unwrap().to_ne_bytes();
                     app.find(&arg1)?;
                     info!("{}", app.len());
                 }
 
                 "re" => {
-                    let arg1 = input[1].parse::<u8>().unwrap().to_ne_bytes();
+                    let arg1 = input[1].parse::<i32>().unwrap().to_ne_bytes();
                     app.refind(&arg1)?;
                     info!("{}", app.len());
                 }

@@ -1,3 +1,5 @@
+use utils::debug;
+
 use crate::error::Result;
 
 pub trait MemExt {
@@ -30,6 +32,9 @@ where
         } else {
             size = end - start;
         }
+
+        // debug!("num: {}, last: {}, size: {}", num, last, size);
+
         Self {
             mem,
             start,
@@ -48,6 +53,9 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.num != 0 {
+
+            debug!("{}",self.last);
+
             match self.mem.read(self.start, self.size) {
                 Ok(chunk) => {
                     self.start += self.size;
