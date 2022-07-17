@@ -1,7 +1,4 @@
-use std::{
-    env,
-    fs::{self, File, OpenOptions},
-};
+use std::{env, fs::OpenOptions};
 
 use utils::{debug, info};
 #[cfg(target_os = "windows")]
@@ -24,13 +21,19 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
 pub fn start() -> Result<()> {
     let pid = env::args().nth(1).unwrap().parse::<u32>().unwrap();
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let m = OpenOptions::new().read(true).write(true).open(format!("/proc/{}/mem", pid)).unwrap();
+    let m = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(format!("/proc/{}/mem", pid))
+        .unwrap();
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let v = crate::platform::parse_proc_maps(&fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap())
-        .unwrap()
-        .into_iter()
-        .filter(|m| m.is_write() && m.is_read()).collect::<Vec<_>>();
+    let v =
+        crate::platform::parse_proc_maps(&std::fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap())
+            .unwrap()
+            .into_iter()
+            .filter(|m| m.is_write() && m.is_read())
+            .collect::<Vec<_>>();
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     let region = &v;
@@ -43,7 +46,7 @@ pub fn start() -> Result<()> {
 
     let handle = Mem::new(m);
 
-    let mut app = Scan::new(&handle, &region).unwrap();
+    let mut app = Scan::new(&handle, region).unwrap();
 
     loop {
         let prompt = prompt("> ")?;
@@ -76,11 +79,11 @@ pub fn start() -> Result<()> {
                     let arg2 = input[2].parse::<i32>().unwrap().to_ne_bytes();
                     handle.write(arg1, &arg2).unwrap();
                 }
-                "r"=> {
+                "r" => {
                     let arg1 = hexstr_to_usize(input[1]).unwrap();
-                    debug!("{}",arg1);
+                    debug!("{}", arg1);
                     let a = handle.read(arg1, 4).unwrap();
-                    debug!("{}",i32::from_ne_bytes(a.try_into().unwrap()))
+                    debug!("{}", i32::from_ne_bytes(a.try_into().unwrap()))
                 }
                 "q" => {
                     break;

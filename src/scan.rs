@@ -37,7 +37,7 @@ where
         debug!("ss");
         let mut v = Vec::new();
 
-        self.region.into_iter().for_each(|region| {
+        self.region.iter().for_each(|region| {
             let local: Vec<_> = scan_region(self.handle, region.start(), region.end(), value).collect();
             let data = RegionChunkData { info: region, local };
             v.push(data);
