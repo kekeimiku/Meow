@@ -1,4 +1,7 @@
-use std::os::unix::prelude::FileExt;
+use std::{
+    fs::{File, OpenOptions},
+    os::unix::prelude::FileExt,
+};
 
 use crate::{
     error::{Error, Result},
@@ -71,7 +74,7 @@ impl InfoExt for Region {
     }
 }
 
-pub fn parse_proc_maps(contents: &str) -> Result<Vec<Region>> {
+pub fn get_region_range(contents: &str) -> Result<Vec<Region>> {
     let mut vec: Vec<Region> = Vec::new();
     let e = || Error::ParseMapsError;
     for line in contents.split('\n') {
@@ -96,16 +99,25 @@ pub fn parse_proc_maps(contents: &str) -> Result<Vec<Region>> {
     Ok(vec)
 }
 
+pub fn get_memory_handle(pid: u32) -> Result<Mem<File>> {
+    Ok(Mem::new(
+        OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(format!("/proc/{}/mem", pid))?,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{parse_proc_maps, InfoExt};
+    use super::{get_region_range, InfoExt};
 
     #[test]
     fn test_linux_parse_proc_maps() {
         let contents: &str = r#"563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/bin/fish
 563ea23ea000-563ea2569000 rw-p 00000000 00:00 0 [heap]
 7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0"#;
-        let maps = parse_proc_maps(contents).unwrap();
+        let maps = get_region_range(contents).unwrap();
         assert_eq!(maps[0].start(), 0x563ea224a000);
         assert_eq!(maps[0].end(), 0x563ea2259000);
         assert_eq!(maps[0].pathname(), "/usr/bin/fish");

@@ -4,7 +4,7 @@ use utils::{debug, info};
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
 
-use crate::{error::Result, mem::MemExt, platform::Mem, scan::Scan};
+use crate::{error::Result, mem::MemExt, platform::get_memory_handle, scan::Scan};
 
 pub fn prompt(name: &str) -> Result<Vec<String>> {
     let mut line = String::new();
@@ -20,33 +20,24 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
 
 pub fn start() -> Result<()> {
     let pid = env::args().nth(1).unwrap().parse::<u32>().unwrap();
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    let m = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(format!("/proc/{}/mem", pid))
-        .unwrap();
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let v =
-        crate::platform::parse_proc_maps(&std::fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap())
+    let region =
+        crate::platform::get_region_range(&std::fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap())
             .unwrap()
             .into_iter()
             .filter(|m| m.is_write() && m.is_read())
             .collect::<Vec<_>>();
 
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    let region = &v;
-
     #[cfg(target_os = "windows")]
-    let m = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
+    let handle = get_handle(pid).unwrap();
 
     #[cfg(target_os = "windows")]
     let region = crate::platform::get_region_range(m).unwrap();
 
-    let handle = Mem::new(m);
+    let handle = get_memory_handle(pid).unwrap();
 
-    let mut app = Scan::new(&handle, region).unwrap();
+    let mut app = Scan::new(&handle, &region).unwrap();
 
     loop {
         let prompt = prompt("> ")?;

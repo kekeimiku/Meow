@@ -11,6 +11,7 @@ use windows_sys::Win32::{
             VirtualQueryEx, MEMORY_BASIC_INFORMATION, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY,
             PAGE_READWRITE, PAGE_WRITECOPY,
         },
+        Threading::{OpenProcess, PROCESS_ALL_ACCESS},
     },
 };
 
@@ -104,4 +105,8 @@ pub fn get_region_range(handle: HANDLE) -> Result<Vec<Region>> {
     }
 
     Ok(regions)
+}
+
+pub fn get_memory_handle<T: MemExt>(pid: u32) -> Result<T> {
+    Ok(Mem::new(unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) }))
 }
