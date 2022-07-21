@@ -12,5 +12,6 @@ Cargo.lock
 /dockertest
 .vscode
 test.txt
-main.rs
 libt*
+meow.drawio.svg
+.tmp/

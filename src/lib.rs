@@ -1,10 +1,12 @@
 pub mod error;
 pub mod mem;
-pub mod plugin;
 pub mod prompt;
 pub mod region;
 pub mod scan;
 pub mod value;
+
+#[cfg(feature = "plugin")]
+pub mod plugin;
 
 mod os;
 

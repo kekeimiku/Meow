@@ -6,13 +6,13 @@ use crate::{
     region::InfoExt,
 };
 
+type Chunk = Vec<u16>;
+
 #[derive(Debug)]
 pub struct RegionChunkData<'a, R: InfoExt> {
     pub info: &'a R,
     pub local: Vec<Chunk>,
 }
-
-type Chunk = Vec<u16>;
 
 pub struct Scan<'a, H: MemExt, R: InfoExt> {
     handle: &'a H,
@@ -92,7 +92,7 @@ where
 // 这将在不占用过多内存的情况下加快扫描速度 减少syscall次数
 // TODO 储存到硬盘的格式？如何读取？顺序？
 // TODO 也许储存在内存还是硬盘应该可选
-const CHUNK_SIZE: usize = 63488;
+const CHUNK_SIZE: usize = 32768;
 
 fn scan_region<'a, T: MemExt>(
     handle: &'a T,

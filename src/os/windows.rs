@@ -38,9 +38,9 @@ impl MemExt for Mem {
         };
         if code == 0 {
             let error = unsafe { GetLastError() };
-            warn!("err: {}",error);
-            // todo 处理这个错误，它会导致内存泄漏....
-            // return Err(Error::WindowsGetLastError(error));
+            warn!("err: {}", error);
+            // todo 处理这个错误
+            // return Err(Error::GetLastError(error));
         }
 
         Ok(buf)
@@ -59,9 +59,9 @@ impl MemExt for Mem {
 
         if code == 0 {
             let error = unsafe { GetLastError() };
-            warn!("err: {}",error);
-            // todo 处理这个错误，它会导致内存泄漏....
-            // return Err(Error::WindowsGetLastError(error));
+            warn!("err: {}", error);
+            // todo 处理这个错误
+            // return Err(Error::GetLastError(error));
         }
 
         Ok(payload.len())

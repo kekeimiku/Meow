@@ -23,3 +23,7 @@ pub fn bytes_to_i64(v: &[u8]) -> i64 {
 pub fn bytes_to_u64(v: &[u8]) -> u64 {
     u64::from_ne_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]])
 }
+
+pub fn hexstr_to_usize(s: &str) -> Result<usize, ParseIntError> {
+    Ok(usize::from_str_radix(&s.replace("0x", ""), 16)?)
+}

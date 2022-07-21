@@ -4,10 +4,10 @@
 pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
-    ParseMapsError,
+    ParseMapsError,    
+    GetLastError(u32),
+    #[cfg(feature = "plugin")]
     UseExtError(libloading::Error),
-    New(&'static str),
-    WindowsGetLastError(u32),
 }
 
 impl From<std::num::ParseIntError> for Error {
@@ -22,6 +22,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "plugin")]
 impl From<libloading::Error> for Error {
     fn from(e: libloading::Error) -> Self {
         Error::UseExtError(e)

@@ -21,7 +21,7 @@ pub fn prompt(name: &str) -> Result<Vec<String>> {
 pub fn start() -> Result<()> {
     let pid = env::args().nth(1).unwrap().parse::<u32>().unwrap();
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let m = OpenOptions::new()
+    let m = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
         .open(format!("/proc/{}/mem", pid))
@@ -46,7 +46,7 @@ pub fn start() -> Result<()> {
 
     let handle = Mem::new(m);
 
-    let mut app = Scan::new(&handle, &region).unwrap();
+    let mut app = Scan::new(&handle, region).unwrap();
 
     loop {
         let prompt = prompt("> ")?;
@@ -71,7 +71,7 @@ pub fn start() -> Result<()> {
                 }
 
                 "len" => {
-                    // info!("{}", app.len());
+                    info!("{}", app.len());
                 }
 
                 "w" => {
@@ -83,7 +83,7 @@ pub fn start() -> Result<()> {
                     let arg1 = hexstr_to_usize(input[1]).unwrap();
                     debug!("{}", arg1);
                     let a = handle.read(arg1, 4).unwrap();
-                    debug!("{}", i32::from_ne_bytes(a.try_into().unwrap()))
+                    debug!("{}", i32::from_ne_bytes(a.try_into().unwrap()));
                 }
                 "q" => {
                     break;
