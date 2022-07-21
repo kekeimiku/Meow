@@ -83,8 +83,19 @@ impl InfoExt for Region {
     fn end(&self) -> usize {
         self.BaseAddress as usize + self.RegionSize
     }
+
+    // todo
+    fn is_read(&self) -> bool {
+        self.Protect == PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY | PAGE_READWRITE | PAGE_WRITECOPY
+    }
+
+    // todo
+    fn is_write(&self) -> bool {
+        self.Protect == PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY | PAGE_READWRITE | PAGE_WRITECOPY
+    }
 }
 
+// todo
 pub fn get_region_range(handle: HANDLE) -> Result<Vec<Region>> {
     let mut base: usize = 0;
     let mut regions = Vec::new();
@@ -93,10 +104,7 @@ pub fn get_region_range(handle: HANDLE) -> Result<Vec<Region>> {
     while unsafe { VirtualQueryEx(handle, base as *const _, info.as_mut_ptr(), len) } > 0 {
         let info = unsafe { info.assume_init() };
         base = info.BaseAddress as usize + info.RegionSize;
-        let mask = PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY | PAGE_READWRITE | PAGE_WRITECOPY;
-        if (info.Protect & mask) != 0 {
-            regions.push(info);
-        }
+        regions.push(info);
     }
 
     if regions.is_empty() {
