@@ -22,7 +22,7 @@ use crate::{
 };
 
 pub struct Mem {
-    handle: HANDLE,
+    pub handle: HANDLE,
 }
 
 impl Mem {
@@ -101,12 +101,18 @@ pub fn get_region_range(handle: HANDLE) -> Result<Vec<Region>> {
 
     if regions.is_empty() {
         let error = unsafe { GetLastError() };
-        return Err(Error::WindowsGetLastError(error));
+        return Err(Error::GetLastError(error));
     }
 
     Ok(regions)
 }
 
-pub fn get_memory_handle<T: MemExt>(pid: u32) -> Result<T> {
-    Ok(Mem::new(unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) }))
+pub fn get_memory_handle(pid: u32) -> Result<Mem> {
+    let handle: HANDLE = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, pid) };
+    if handle <= 0 {
+        let error = unsafe { GetLastError() };
+        return Err(Error::GetLastError(error));
+    }
+
+    Ok(Mem::new(handle))
 }

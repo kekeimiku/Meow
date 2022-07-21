@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub struct Mem<T: FileExt> {
-    handle: T,
+    pub handle: T,
 }
 
 impl<T> Mem<T>

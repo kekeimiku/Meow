@@ -1,8 +1,6 @@
 use std::env;
 
 use utils::{debug, info};
-#[cfg(target_os = "windows")]
-use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
 
 use crate::{error::Result, mem::MemExt, platform::get_memory_handle, scan::Scan};
 
@@ -28,14 +26,13 @@ pub fn start() -> Result<()> {
             .into_iter()
             .filter(|m| m.is_write() && m.is_read())
             .collect::<Vec<_>>();
-
-    #[cfg(target_os = "windows")]
-    let handle = get_handle(pid).unwrap();
-
-    #[cfg(target_os = "windows")]
-    let region = crate::platform::get_region_range(m).unwrap();
-
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     let handle = get_memory_handle(pid).unwrap();
+
+    #[cfg(target_os = "windows")]
+    let handle = get_memory_handle(pid).unwrap();
+    #[cfg(target_os = "windows")]
+    let region = crate::platform::get_region_range(handle.handle).unwrap();
 
     let mut app = Scan::new(&handle, &region).unwrap();
 
