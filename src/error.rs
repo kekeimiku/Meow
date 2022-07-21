@@ -4,7 +4,7 @@
 pub enum Error {
     IoError(std::io::Error),
     ParseIntError(std::num::ParseIntError),
-    ParseMapsError,    
+    ParseMapsError,
     GetLastError(u32),
     #[cfg(feature = "plugin")]
     UseExtError(libloading::Error),
