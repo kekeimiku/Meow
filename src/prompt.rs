@@ -2,7 +2,12 @@ use std::env;
 
 use utils::{debug, info};
 
-use crate::{error::Result, mem::MemExt, platform::get_memory_handle, scan::Scan};
+use crate::{
+    error::Result,
+    mem::MemExt,
+    platform::{get_memory_handle, get_region_range},
+    scan::Scan, region::InfoExt,
+};
 
 pub fn prompt(name: &str) -> Result<Vec<String>> {
     let mut line = String::new();
@@ -20,19 +25,17 @@ pub fn start() -> Result<()> {
     let pid = env::args().nth(1).unwrap().parse::<u32>().unwrap();
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let region =
-        crate::platform::get_region_range(&std::fs::read_to_string(format!("/proc/{}/maps", pid)).unwrap())
-            .unwrap()
-            .into_iter()
-            .filter(|m| m.is_write() && m.is_read())
-            .collect::<Vec<_>>();
+    let region = get_region_range(pid).unwrap()
+        .into_iter()
+        .filter(|m| m.is_write() && m.is_read())
+        .collect::<Vec<_>>();
     #[cfg(any(target_os = "linux", target_os = "android"))]
     let handle = get_memory_handle(pid).unwrap();
 
     #[cfg(target_os = "windows")]
     let handle = get_memory_handle(pid).unwrap();
     #[cfg(target_os = "windows")]
-    let region = crate::platform::get_region_range(handle.handle).unwrap();
+    let region = get_region_range(handle.handle).unwrap();
 
     let mut app = Scan::new(&handle, &region).unwrap();
 
