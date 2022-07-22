@@ -66,34 +66,3 @@ where
         None
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    #[test]
-    fn test_chunk_read_linux() {
-        use crate::{
-            mem::{Chunks, MemExt},
-            platform::Mem,
-        };
-        let mem = Mem::new(tempfile::tempfile().unwrap());
-        mem.write(0, &[49, 50, 51, 52, 53, 54, 55, 56, 57, 48]).unwrap();
-        let chunk = Chunks::new(&mem, 2, 10, 3);
-        let v = chunk.into_iter().map(|x| x.unwrap()).collect::<Vec<_>>();
-        assert_eq!(v, vec![vec![51, 52, 53], vec![54, 55, 56], vec![57, 48]])
-    }
-
-    #[cfg(target_os = "windows")]
-    #[test]
-    fn test_chunk_read_windows() {
-        use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
-
-        let _handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, 0, 1) };
-        // let mem = Mem::from(handle);
-        // mem.write(0, &[49, 50, 51, 52, 53, 54, 55, 56, 57, 48]).unwrap();
-        // let chunk = Chunks::from(&mem, 2, 10, 3);
-        // let v = chunk.into_iter().map(|x| x.unwrap()).collect::<Vec<_>>();
-        // assert_eq!(v, vec![vec![51, 52, 53], vec![54, 55, 56], vec![57, 48]])
-    }
-}

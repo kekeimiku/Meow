@@ -1,12 +1,39 @@
+#![allow(dead_code)]
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use meow::{
-    platform::{Region, RegionIter},
-    region::InfoExt,
-};
+use meow::{platform::RegionIter, region::InfoExt};
 
 const CONTENTS: &str = r#"563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/bin/fish
 563ea23ea000-563ea2569000 rw-p 00000000 00:00 0 [heap]
 7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0"#;
+
+pub struct Region {
+    pub start: usize,
+    pub end: usize,
+    pub flags: String,
+    pub pathname: String,
+}
+
+impl Region {
+    fn size(&self) -> usize {
+        self.end - self.start
+    }
+    fn start(&self) -> usize {
+        self.start
+    }
+    fn end(&self) -> usize {
+        self.end
+    }
+    fn is_read(&self) -> bool {
+        &self.flags[0..1] == "r"
+    }
+    fn is_write(&self) -> bool {
+        &self.flags[1..2] == "w"
+    }
+    fn pathname(&self) -> &str {
+        &self.pathname
+    }
+}
 
 pub fn get_region_range(contents: &str) -> Vec<Region> {
     let mut vec: Vec<Region> = Vec::new();
@@ -22,10 +49,10 @@ pub fn get_region_range(contents: &str) -> Vec<Region> {
         let flags = split.next().unwrap();
 
         vec.push(Region {
-            range_start: usize::from_str_radix(range_start, 16).unwrap(),
-            range_end: usize::from_str_radix(range_end, 16).unwrap(),
+            start: usize::from_str_radix(range_start, 16).unwrap(),
+            end: usize::from_str_radix(range_end, 16).unwrap(),
             flags: flags.to_string(),
-            pathname: split.by_ref().skip(3).collect::<Vec<&str>>().join(" "),
+            pathname: split.skip(3).collect::<Vec<&str>>().join(" "),
         });
     }
     vec

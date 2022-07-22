@@ -10,15 +10,6 @@ pub struct Mem<T: FileExt> {
     pub handle: T,
 }
 
-impl<T> Mem<T>
-where
-    T: FileExt,
-{
-    pub fn new(handle: T) -> Mem<T> {
-        Mem { handle }
-    }
-}
-
 impl<T> MemExt for Mem<T>
 where
     T: FileExt,
@@ -36,22 +27,22 @@ where
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Region {
-    pub range_start: usize,
-    pub range_end: usize,
-    pub flags: String,
-    pub pathname: String,
+pub struct Region<'a> {
+    pub start: usize,
+    pub end: usize,
+    pub flags: &'a str,
+    pub pathname: &'a str,
 }
 
-impl InfoExt for Region {
+impl InfoExt for Region<'_> {
     fn size(&self) -> usize {
-        self.range_end - self.range_start
+        self.end - self.start
     }
     fn start(&self) -> usize {
-        self.range_start
+        self.start
     }
     fn end(&self) -> usize {
-        self.range_end
+        self.end
     }
     fn is_read(&self) -> bool {
         &self.flags[0..1] == "r"
@@ -60,7 +51,7 @@ impl InfoExt for Region {
         &self.flags[1..2] == "w"
     }
     fn pathname(&self) -> &str {
-        &self.pathname
+        self.pathname
     }
 }
 
@@ -74,35 +65,30 @@ impl<'a> RegionIter<'a> {
     }
 }
 
-impl Iterator for RegionIter<'_> {
-    type Item = Region;
+impl<'a> Iterator for RegionIter<'a> {
+    type Item = Region<'a>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        let line = self.lines.next();
-        let mut split = line?.split_whitespace();
-        let range = split.next();
-        let mut range_split = range?.split('-');
-        let start = range_split.next()?;
-        let end = range_split.next()?;
+        let line = self.lines.next()?;
+        let mut split = line.splitn(6, ' ');
+        let mut range_split = split.next()?.split('-');
+        let start = usize::from_str_radix(range_split.next()?, 16).unwrap();
+        let end = usize::from_str_radix(range_split.next()?, 16).unwrap();
         let flags = split.next()?;
+        let pathname = split.nth(3).unwrap_or("");
 
-        Some(Region {
-            range_start: usize::from_str_radix(start, 16).unwrap(),
-            range_end: usize::from_str_radix(end, 16).unwrap(),
-            flags: flags.to_string(),
-            pathname: split.by_ref().skip(3).collect::<Vec<&str>>().join(" "),
-        })
+        Some(Region { start, end, flags, pathname })
     }
 }
 
 pub fn get_memory_handle(pid: u32) -> Result<Mem<File>> {
-    Ok(Mem::new(
-        OpenOptions::new()
+    Ok(Mem {
+        handle: OpenOptions::new()
             .read(true)
             .write(true)
             .open(format!("/proc/{}/mem", pid))?,
-    ))
+    })
 }
 
 #[cfg(test)]
@@ -112,12 +98,16 @@ mod tests {
     fn test_linux_parse_proc_maps() {
         let contents: &str = r#"563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/bin/fish
 563ea23ea000-563ea2569000 rw-p 00000000 00:00 0 [heap]
-7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0"#;
+7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0 
+563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/b in/fish
+7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0 "#;
         let maps = RegionIter::new(contents).collect::<Vec<_>>();
         assert_eq!(maps[0].start(), 0x563ea224a000);
         assert_eq!(maps[0].end(), 0x563ea2259000);
         assert_eq!(maps[0].pathname(), "/usr/bin/fish");
         assert_eq!(maps[1].pathname(), "[heap]");
         assert_eq!(maps[2].pathname(), "");
+        assert_eq!(maps[3].pathname(), "/usr/b in/fish");
+        assert_eq!(maps[4].pathname(), "");
     }
 }
