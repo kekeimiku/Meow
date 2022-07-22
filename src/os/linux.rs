@@ -76,7 +76,7 @@ impl<'a> Iterator for RegionIter<'a> {
         let start = usize::from_str_radix(range_split.next()?, 16).unwrap();
         let end = usize::from_str_radix(range_split.next()?, 16).unwrap();
         let flags = split.next()?;
-        let pathname = split.nth(3).unwrap_or("");
+        let pathname = split.nth(3).unwrap_or("").trim_start();
 
         Some(Region { start, end, flags, pathname })
     }
@@ -99,7 +99,7 @@ mod tests {
         let contents: &str = r#"563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/bin/fish
 563ea23ea000-563ea2569000 rw-p 00000000 00:00 0 [heap]
 7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0 
-563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/b in/fish
+563ea224a000-563ea2259000 r--p 00000000 103:05 5920780     /usr/b in/fish  
 7f9e08000000-7f9e08031000 rw-p 00000000 00:00 0 "#;
         let maps = RegionIter::new(contents).collect::<Vec<_>>();
         assert_eq!(maps[0].start(), 0x563ea224a000);
@@ -107,7 +107,7 @@ mod tests {
         assert_eq!(maps[0].pathname(), "/usr/bin/fish");
         assert_eq!(maps[1].pathname(), "[heap]");
         assert_eq!(maps[2].pathname(), "");
-        assert_eq!(maps[3].pathname(), "/usr/b in/fish");
+        assert_eq!(maps[3].pathname(), "/usr/b in/fish  ");
         assert_eq!(maps[4].pathname(), "");
     }
 }
