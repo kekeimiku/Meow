@@ -105,9 +105,7 @@ pub struct RegionIter {
 }
 
 impl RegionIter {
-    pub fn new(handle: HANDLE){
-
-    }
+    pub fn new(handle: HANDLE) {}
 }
 
 impl Iterator for RegionIter {

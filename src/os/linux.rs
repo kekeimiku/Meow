@@ -4,7 +4,10 @@ use std::{
     str::Lines,
 };
 
-use crate::{error::Result, mem::MemExt, region::InfoExt};
+use crate::{
+    error::Result,
+    mem::{InfoExt, MemExt},
+};
 
 pub struct Mem<T: FileExt> {
     pub handle: T,

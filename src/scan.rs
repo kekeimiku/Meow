@@ -2,8 +2,7 @@ use utils::info;
 
 use crate::{
     error::Result,
-    mem::{Chunks, MemExt},
-    region::InfoExt,
+    mem::{Chunks, InfoExt, MemExt},
 };
 
 type Chunk = Vec<u16>;

@@ -1,7 +1,6 @@
 pub mod error;
 pub mod mem;
 // pub mod prompt;
-pub mod region;
 pub mod scan;
 pub mod value;
 

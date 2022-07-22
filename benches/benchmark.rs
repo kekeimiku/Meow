@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use meow::{platform::RegionIter, region::InfoExt};
+use meow::{mem::InfoExt, platform::RegionIter};
 
 const CONTENTS: &str = r#"563ea224a000-563ea2259000 r--p 00000000 103:05 5920780 /usr/bin/fish
 563ea23ea000-563ea2569000 rw-p 00000000 00:00 0 [heap]
