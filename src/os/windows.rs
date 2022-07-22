@@ -69,7 +69,7 @@ impl MemExt for Mem {
     }
 }
 
-pub type Region = MEMORY_BASIC_INFORMATION;
+type Region = MEMORY_BASIC_INFORMATION;
 
 impl InfoExt for Region {
     fn size(&self) -> usize {
@@ -92,6 +92,29 @@ impl InfoExt for Region {
     // todo
     fn is_write(&self) -> bool {
         self.Protect == PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY | PAGE_READWRITE | PAGE_WRITECOPY
+    }
+
+    fn pathname(&self) -> &str {
+        ""
+    }
+}
+
+pub struct RegionIter {
+    handle: HANDLE,
+    base: usize,
+}
+
+impl RegionIter {
+    pub fn new(handle: HANDLE){
+
+    }
+}
+
+impl Iterator for RegionIter {
+    type Item = Region;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
     }
 }
 
